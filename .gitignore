@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+
+# JS build tooling / artifacts
+node_modules/
+revolt_js/dist/
+
+# PyInstaller build artifacts and logs
+/build/
+/dist/
+*.log
+
+# Large release binaries — not source, don't belong in git history
+itch_release/
