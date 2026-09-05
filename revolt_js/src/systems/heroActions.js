@@ -22,8 +22,12 @@ export function getAim(scene) {
 }
 
 export function hitTargets(scene) {
-  if (scene.worm && scene.worm.vurulabilirMi()) return scene.enemies.concat([scene.worm]);
-  return scene.enemies;
+  let targets = scene.enemies;
+  if (scene.worm && scene.worm.vurulabilirMi()) targets = targets.concat([scene.worm]);
+  if (scene.golgeSolucanlar && scene.golgeSolucanlar.length) {
+    targets = targets.concat(scene.golgeSolucanlar.filter(w => w.vurulabilirMi()));
+  }
+  return targets;
 }
 
 export function coneHit(scene, atk) {
@@ -132,7 +136,7 @@ export function rightAction(scene, mx, my) {
       break;
     }
     case 5:
-      p.overdriveKancaBaslat(mx, my);
+      p.overdriveKancaBaslat(mx, my, scene);
       break;
     case 9: {
       const atk = p.roninFirlatBaslat(mx, my);

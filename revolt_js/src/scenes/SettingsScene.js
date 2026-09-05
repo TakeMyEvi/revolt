@@ -9,7 +9,7 @@ const DILLER = [
   { kod: 'tr', ad: 'TR' }, { kod: 'en', ad: 'EN' }, { kod: 'es', ad: 'ES' },
   { kod: 'fr', ad: 'FR' }, { kod: 'de', ad: 'DE' }
 ];
-const SEKIL_ADLARI = { arti: 'ARTI', daire: 'DAIRE', nokta: 'NOKTA', kare: 'KARE' };
+const SEKIL_ANAHTAR = { arti: 'sekilArti', daire: 'sekilDaire', nokta: 'sekilNokta', kare: 'sekilKare' };
 
 export class SettingsScene extends Phaser.Scene {
   constructor() { super('Settings'); }
@@ -38,7 +38,7 @@ export class SettingsScene extends Phaser.Scene {
     this.add.text(GENISLIK / 2, 280, t('pcKontrolleri'), { fontFamily: 'monospace', fontSize: '14px', color: '#00fff7' }).setOrigin(0.5);
 
     this.add.text(200, 315, t('imlecSekli'), { fontFamily: 'monospace', fontSize: '13px', color: '#dddddd' }).setOrigin(0, 0.5);
-    this.sekilButonlari = NISANGAH_SEKILLERI.map((s, i) => makeButton(this, 460 + i * 78, 315, 70, 28, SEKIL_ADLARI[s], () => {
+    this.sekilButonlari = NISANGAH_SEKILLERI.map((s, i) => makeButton(this, 460 + i * 78, 315, 70, 28, t(SEKIL_ANAHTAR[s]), () => {
       GameState.nisangahSekilIdx = i; saveState(); this._refreshSekil();
     }, '11px'));
     this._refreshSekil();

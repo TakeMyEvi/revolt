@@ -12,9 +12,9 @@ import { makeButton } from '../systems/ui.js';
 import { playThemeMusic } from '../systems/music.js';
 import { drawThemedBackground, themeForBolum } from '../systems/background.js';
 import { MobileControls } from '../systems/mobileControls.js';
-import { gameplayStart, gameplayStop } from '../systems/poki.js';
+import { gameplayStart, gameplayStop, rewardedBreak, isPokiAvailable } from '../systems/poki.js';
 import { Crosshair } from '../systems/crosshair.js';
-import { t } from '../data/translations.js';
+import { t, randomOlumMesaji } from '../data/translations.js';
 import { PauseController } from '../systems/pause.js';
 
 // Simplified vs. the Python original: runs on the fixed 900x550 arena
@@ -135,10 +135,11 @@ export class SurvivalScene extends Phaser.Scene {
     this.add.rectangle(10, 29, 120, 8, 0x1e1e1e).setOrigin(0, 0).setDepth(20);
     this.hudText = this.add.text(GENISLIK / 2, 20, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffffff' }).setOrigin(0.5).setDepth(20);
     this.hudTime = this.add.text(GENISLIK - 20, 13, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffffff' }).setOrigin(1, 0).setDepth(20);
-    this.msgBox = this.add.rectangle(GENISLIK / 2, YUKSEKLIK / 2, 500, 200, 0x000000, 0.85)
+    this.msgBox = this.add.rectangle(GENISLIK / 2, YUKSEKLIK / 2, 500, 230, 0x000000, 0.85)
       .setStrokeStyle(2, 0x00fff7).setDepth(29).setVisible(false);
     this.msgText = this.add.text(GENISLIK / 2, YUKSEKLIK / 2, '', { fontFamily: 'monospace', fontSize: '26px', color: '#00fff7' }).setOrigin(0.5).setDepth(30);
     this.cardContainer = this.add.container(0, 0).setDepth(40);
+    this._endScreenExtras = [];
   }
 
   _sanalBolum() {
@@ -154,15 +155,16 @@ export class SurvivalScene extends Phaser.Scene {
     const pool = Phaser.Utils.Array.Shuffle([...YUKSELTME_HAVUZU]).slice(0, 3);
     const overlay = this.add.rectangle(GENISLIK / 2, YUKSEKLIK / 2, GENISLIK, YUKSEKLIK, 0x000000, 0.75);
     this.cardContainer.add(overlay);
-    const title = this.add.text(GENISLIK / 2, 140, 'SEVIYE ATLADIN! BIR KART SEC', { fontFamily: 'monospace', fontSize: '18px', color: '#ffee00' }).setOrigin(0.5);
+    const title = this.add.text(GENISLIK / 2, 140, t('seviyeAtladinKartSec'), { fontFamily: 'monospace', fontSize: '18px', color: '#ffee00' }).setOrigin(0.5);
     this.cardContainer.add(title);
 
     pool.forEach((card, i) => {
       const x = GENISLIK / 2 + (i - 1) * 230;
       const y = YUKSEKLIK / 2 + 20;
+      const key = card.id.charAt(0).toUpperCase() + card.id.slice(1);
       const box = this.add.rectangle(x, y, 200, 160, 0x111122).setStrokeStyle(2, 0x00fff7).setInteractive({ useHandCursor: true });
-      const name = this.add.text(x, y - 40, card.isim, { fontFamily: 'monospace', fontSize: '15px', color: '#00fff7', align: 'center', wordWrap: { width: 180 } }).setOrigin(0.5);
-      const desc = this.add.text(x, y + 10, card.aciklama, { fontFamily: 'monospace', fontSize: '13px', color: '#dddddd', align: 'center', wordWrap: { width: 180 } }).setOrigin(0.5);
+      const name = this.add.text(x, y - 40, t(`yukseltme${key}Isim`), { fontFamily: 'monospace', fontSize: '15px', color: '#00fff7', align: 'center', wordWrap: { width: 180 } }).setOrigin(0.5);
+      const desc = this.add.text(x, y + 10, t(`yukseltme${key}Aciklama`), { fontFamily: 'monospace', fontSize: '13px', color: '#dddddd', align: 'center', wordWrap: { width: 180 } }).setOrigin(0.5);
       box.on('pointerdown', () => this._applyCard(card.id));
       box.on('pointerover', () => box.setStrokeStyle(2, 0x00ffc8));
       box.on('pointerout', () => box.setStrokeStyle(2, 0x00fff7));
@@ -308,6 +310,7 @@ export class SurvivalScene extends Phaser.Scene {
       m.guncelle();
       const mr = m.rect();
       if (m.oyuncuMermisi) {
+        if (m.golgeGecikme > 0) { m.golgeGecikme--; continue; }
         for (const d of this.enemies) {
           if (d.dead) continue;
           if (Phaser.Geom.Intersects.RectangleToRectangle(mr, d.rect())) {
@@ -386,7 +389,7 @@ export class SurvivalScene extends Phaser.Scene {
     this.hudHpFill.width = 118 * hpRatio;
     this.hudHpFill.fillColor = hpRatio > 0.5 ? 0x00ff64 : (hpRatio > 0.25 ? 0xf5a623 : 0xe94560);
     this.hudXpFill.width = 118 * Phaser.Math.Clamp(this.xpDolu / this.xpGerekli, 0, 1);
-    this.hudText.setText(`SEVIYE ${this.seviye}   OLDURULEN:${this.oldurulen}`);
+    this.hudText.setText(`${t('seviyeLabel')} ${this.seviye}   ${t('oldurulenLabel')}:${this.oldurulen}`);
     const secs = Math.floor(this.gecenKare / 60);
     this.hudTime.setText(`${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`);
 
@@ -397,9 +400,37 @@ export class SurvivalScene extends Phaser.Scene {
       GameState.enUzunHayattaKalma = bestSecs;
       GameState.toplamOldurulen += this.oldurulen;
       saveState();
-      this.msgBox.setVisible(true);
-      this.msgText.setText(`HAYATTA KALDIN: ${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}\nSEVIYE ${this.seviye}   OLDURULEN:${this.oldurulen}`);
-      makeButton(this, GENISLIK / 2, YUKSEKLIK / 2 + 70, 220, 34, t('anaMenuyeDon'), () => this.scene.start('Menu'), '15px');
+      const btnCount = isPokiAvailable() ? 2 : 1;
+      this.msgBox.setSize(500, Math.max(230, 2 * (80 + (btnCount - 1) * 44 + 17) + 8)).setVisible(true);
+      this.msgText.setText(`${t('hayattaKaldinLabel')}: ${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}\n${t('seviyeLabel')} ${this.seviye}   ${t('oldurulenLabel')}:${this.oldurulen}`);
+      const taunt = this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + 48, randomOlumMesaji(), {
+        fontFamily: 'monospace', fontSize: '12px', color: '#f5a623'
+      }).setOrigin(0.5).setDepth(30);
+      this._endScreenExtras.push(taunt);
+      let y = YUKSEKLIK / 2 + 80;
+      if (isPokiAvailable()) {
+        const revive = makeButton(this, GENISLIK / 2, y, 220, 34, t('reklamlaCanlan'), () => this._reviveFromAd(), '12px');
+        this._endScreenExtras.push(revive.bg, revive.text);
+        y += 44;
+      }
+      const menu = makeButton(this, GENISLIK / 2, y, 220, 34, t('anaMenuyeDon'), () => this.scene.start('Menu'), '15px');
+      this._endScreenExtras.push(menu.bg, menu.text);
     }
+  }
+
+  _clearEndScreen() {
+    this.msgBox.setVisible(false);
+    this.msgText.setText('');
+    for (const o of this._endScreenExtras) o.destroy();
+    this._endScreenExtras = [];
+  }
+
+  async _reviveFromAd() {
+    const ok = await rewardedBreak();
+    if (!ok) return;
+    this._clearEndScreen();
+    this.gameOver = false;
+    this.player.can = Math.round(this.player.maxCan * 0.6);
+    this.player.hasarTimer = 60;
   }
 }

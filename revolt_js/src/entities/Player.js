@@ -556,13 +556,54 @@ export class Player {
   }
 
   // ── OVERDRIVE ──
-  overdriveKancaBaslat(fx, fy) {
+  // Fires a ray from the player toward (fx,fy) and keeps travelling — not
+  // stopping at the clicked point — until it actually hits something solid:
+  // an enemy, a platform, a wall, the ceiling or the floor. A boss is too
+  // heavy to reel in, so hitting one pulls the player to it instead of
+  // pulling the boss to the player (regular enemies still get yanked in).
+  overdriveKancaBaslat(fx, fy, scene) {
     if (this.kancaBekleme > 0 || this.kancaDurum !== 'yok') return;
     const cx = this.x + this.w / 2, cy = this.y + this.h / 2;
     const dx = fx - cx, dy = fy - cy;
-    const dist = Math.min(Math.hypot(dx, dy) || 1, OVERDRIVE.KANCA_MENZIL);
-    const hx = cx + (dx / (Math.hypot(dx, dy) || 1)) * dist;
-    const hy = cy + (dy / (Math.hypot(dx, dy) || 1)) * dist;
+    const uzunluk = Math.hypot(dx, dy) || 1;
+    const ux = dx / uzunluk, uy = dy / uzunluk;
+
+    let hx = null, hy = null, cekilecekDusman = null;
+    const step = 12;
+    let mesafe = 0;
+    while (mesafe < OVERDRIVE.KANCA_MENZIL) {
+      mesafe += step;
+      const nx = cx + ux * mesafe, ny = cy + uy * mesafe;
+
+      const dusman = scene?.enemies?.find(d => !d.dead && Phaser.Geom.Rectangle.Contains(d.rect(), nx, ny));
+      if (dusman) {
+        if (dusman.tip === 'boss' || dusman.tip === 'finalboss') { hx = nx; hy = ny; }
+        else cekilecekDusman = dusman;
+        break;
+      }
+      const plat = scene?.platforms?.find(p => nx >= p.x && nx <= p.x + p.w && ny >= p.y && ny <= p.y + p.h);
+      if (plat) { hx = nx; hy = ny; break; }
+      if (nx <= 0 || nx >= GENISLIK) { hx = Phaser.Math.Clamp(nx, 4, GENISLIK - 4); hy = ny; break; }
+      if (ny <= 66) { hx = nx; hy = 70; break; }
+      if (ny >= ZEMIN_Y - 2) { hx = nx; hy = ZEMIN_Y - 10; break; }
+    }
+
+    if (cekilecekDusman) {
+      cekilecekDusman.cekimKare = 24;
+      cekilecekDusman.cekimHedefX = cx + ux * 40;
+      cekilecekDusman.cekimHedefY = cy + uy * 40;
+      this.kancaBekleme = OVERDRIVE.KANCA_BEKLEME;
+      if (this.overdriveKancaHealAcik) this.can = Math.min(this.maxCan, this.can + 10);
+      return;
+    }
+    if (hx === null) {
+      // Ray never hit anything solid (shouldn't happen inside the bounded
+      // arena) — hook fails and can't latch onto empty space.
+      this.kancaBekleme = OVERDRIVE.KANCA_BEKLEME;
+      return;
+    }
+
+    const dist = Math.hypot(hx - cx, hy - cy) || 1;
     if (this.overdriveSallanmaAcik) {
       this.kancaAnchorX = hx; this.kancaAnchorY = hy;
       this.kancaIpUzunlugu = Math.max(30, dist);
@@ -771,7 +812,7 @@ export class Player {
       this.y = Phaser.Math.Clamp(this.y + this.hizY, 44, ZEMIN_Y - this.h);
     } else if (!locked) {
       if (this.raptorHizli) {
-        if (this.yerde && keys.upJustDown) {
+        if (this.yerde && keys.up) {
           this.hizY = RAPTOR.ZIPLAMA_BASLANGIC;
           this.yerde = false;
           this.raptorZipTutuluyor = true;
@@ -785,7 +826,7 @@ export class Player {
         this.hizY += 0.6;
         this.y += this.hizY;
       } else {
-        if (this.yerde && keys.upJustDown) { this.hizY = -14; this.yerde = false; }
+        if (this.yerde && keys.up) { this.hizY = -14; this.yerde = false; }
         if (!this.yerde && !keys.up && this.hizY < -5) this.hizY = -5;
         this.hizY += 0.6;
         this.y += this.hizY;

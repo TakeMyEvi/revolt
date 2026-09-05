@@ -19,11 +19,12 @@ export class GorevlerScene extends Phaser.Scene {
     GENEL_GOREVLER.forEach((gorev, i) => {
       const y = 120 + i * 62;
       const tamam = gorev.kontrol(GameState);
+      const key = gorev.id.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
       this.add.rectangle(GENISLIK / 2, y + 14, 700, 52, 0x0a0a18, 0.9).setStrokeStyle(1, tamam ? 0x00ff88 : 0x333344);
-      this.add.text(140, y, `${tamam ? '[X]' : '[ ]'} ${gorev.isim}`, {
+      this.add.text(140, y, `${tamam ? '[X]' : '[ ]'} ${t(`gorev${key}Isim`)}`, {
         fontFamily: 'monospace', fontSize: '15px', color: tamam ? '#00ff88' : '#dddddd'
       });
-      this.add.text(140, y + 20, gorev.aciklama, { fontFamily: 'monospace', fontSize: '11px', color: '#999999' });
+      this.add.text(140, y + 20, t(`gorev${key}Aciklama`), { fontFamily: 'monospace', fontSize: '11px', color: '#999999' });
       this.add.text(GENISLIK - 140, y + 10, this._etkiMetni(gorev.etki), {
         fontFamily: 'monospace', fontSize: '11px', color: '#00fff7'
       }).setOrigin(1, 0);
@@ -43,9 +44,9 @@ export class GorevlerScene extends Phaser.Scene {
 
   _etkiMetni(etki) {
     const parts = [];
-    if (etki.can) parts.push(`+${etki.can} CAN`);
-    if (etki.hiz) parts.push(`+%${Math.round(etki.hiz * 100)} HIZ`);
-    if (etki.regen) parts.push(`+${etki.regen} REGEN`);
+    if (etki.can) parts.push(`+${etki.can} ${t('statCan')}`);
+    if (etki.hiz) parts.push(`+%${Math.round(etki.hiz * 100)} ${t('statHiz')}`);
+    if (etki.regen) parts.push(`+${etki.regen} ${t('statRegen')}`);
     return parts.join('  ');
   }
 

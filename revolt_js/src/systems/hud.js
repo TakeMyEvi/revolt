@@ -1,16 +1,9 @@
 import Phaser from 'phaser';
 import { GENISLIK, YUKSEKLIK, AEGIS, RAPTOR, HEX, WRAITH, REAPER, OVERDRIVE, RONIN,
   KALKAN_KAPASITE, KALKAN_BEKLEME, ULTI_MAX } from '../data/constants.js';
+import { t } from '../data/translations.js';
 
-const HINTS = {
-  0: ['KILIC - AEGIS', '#00fff7'],
-  1: ['SOL:PENCE  SAG:HAMLE - RAPTOR', '#00ff64'],
-  6: ['SOL:BUYU  SAG:ISIN - HEX', '#aa00ff'],
-  7: ['SOL:RUH CISMI  SAG:HAYALET - WRAITH', '#78dcc8'],
-  8: ['SOL:ALAN VURUSU  SAG:ATIS - REAPER', '#e94560'],
-  5: ['SOL:ATES  SAG:KANCA  E:PATLAT - OVERDRIVE', '#ffee00'],
-  9: ['SOL:ITIS  SAG:FIRLAT  E:GIZLEN - RONIN', '#aa78ff']
-};
+const HINT_COLORS = { 0: '#00fff7', 1: '#00ff64', 6: '#aa00ff', 7: '#78dcc8', 8: '#e94560', 5: '#ffee00', 9: '#aa78ff' };
 
 // Faithful port of the Python original's `hud_ciz` — same bars/labels/positions.
 export class Hud {
@@ -44,7 +37,8 @@ export class Hud {
     this.centerText = s.text(GENISLIK / 2, 21, '', { fontFamily: 'monospace', fontSize: '13px', color: '#ffffff' }).setOrigin(0.5).setDepth(22);
     this.scoreText = s.text(GENISLIK - 20, 18, '', { fontFamily: 'monospace', fontSize: '13px', color: '#ffffff' }).setOrigin(1, 0.5).setDepth(22);
 
-    const [hintStr, hintColor] = HINTS[scene.heroId] || HINTS[0];
+    const hintStr = t(`hint${scene.heroId}`) !== `hint${scene.heroId}` ? t(`hint${scene.heroId}`) : t('hint0');
+    const hintColor = HINT_COLORS[scene.heroId] || HINT_COLORS[0];
     this.hintText = s.text(10, YUKSEKLIK - 22, hintStr, { fontFamily: 'monospace', fontSize: '11px', color: hintColor }).setDepth(20);
   }
 
@@ -59,8 +53,8 @@ export class Hud {
     this._updateSpecial(p);
     this._updateUlti(p);
 
-    this.centerText.setText(`BOLUM ${bolum}/30   DUSMAN:${Math.max(0, kalanDusman)}`);
-    this.scoreText.setText(`SKOR:${skor}`);
+    this.centerText.setText(`${t('hudBolum')} ${bolum}/30   ${t('hudDusman')}:${Math.max(0, kalanDusman)}`);
+    this.scoreText.setText(`${t('hudSkor')}:${skor}`);
   }
 
   _resetCd() {
@@ -74,12 +68,12 @@ export class Hud {
       case 0: this._cdBar(p.kilicAtmaBekleme, AEGIS.KILIC_ATMA_BEKLEME, 0x00fff7); break;
       case 6:
         this.cdFill.setVisible(false);
-        this.cdText.setText(`KITAP: ${p.hexKitapSayisi}/${p.hexKitapMaxOzel}`).setColor('#aa00ff');
+        this.cdText.setText(`${t('hudKitap')}: ${p.hexKitapSayisi}/${p.hexKitapMaxOzel}`).setColor('#aa00ff');
         break;
       case 1: this._cdBar(p.raptorDashBekleme, RAPTOR.DASH_BEKLEME, 0x00ff64); break;
       case 7:
         this.cdFill.setVisible(false);
-        this.cdText.setText(`RUH: ${Math.round(p.wraithRuh)}/${WRAITH.RUH_MAX}`).setColor('#78dcc8');
+        this.cdText.setText(`${t('hudRuh')}: ${Math.round(p.wraithRuh)}/${WRAITH.RUH_MAX}`).setColor('#78dcc8');
         break;
       case 8:
         this.cdFill.setVisible(false); this.cdBg.setVisible(false);
@@ -105,43 +99,43 @@ export class Hud {
       case 8: {
         const oran = 1 - Phaser.Math.Clamp(p.reaperEBekleme / REAPER.E_BEKLEME, 0, 1);
         this.spFill.width = 80 * oran; this.spFill.fillColor = 0xcd2d28;
-        this.spLabel.setText('E:GUCLENDIR');
+        this.spLabel.setText(t('eGuclendir'));
         break;
       }
       case 7: {
         const oran = Math.min(1, p.wraithRuh / WRAITH.HAYALET_MALIYET);
         this.spFill.width = 80 * oran; this.spFill.fillColor = oran >= 1 ? 0x96e6dc : 0x5a5a5a;
-        this.spLabel.setText('SAG:HAYALET E:IYILES');
+        this.spLabel.setText(t('sagHayaletEIyilestir'));
         break;
       }
       case 1: {
         const oran = p.raptorKacisAktif ? 1 : 1 - Phaser.Math.Clamp(p.raptorKacisBekleme / RAPTOR.KACIS_BEKLEME, 0, 1);
         this.spFill.width = 80 * oran; this.spFill.fillColor = p.raptorKacisAktif ? 0xffffff : 0x00ff64;
-        this.spLabel.setText('E:KACIS');
+        this.spLabel.setText(t('eKacis'));
         break;
       }
       case 6: {
         const oran = p.hexHealAktif ? p.hexHealSuresi / HEX.HEAL_SURESI : (1 - Phaser.Math.Clamp(p.hexHealBekleme / HEX.HEAL_BEKLEME, 0, 1));
         this.spFill.width = 80 * oran; this.spFill.fillColor = p.hexHealAktif ? 0x00ff64 : 0x5a5a5a;
-        this.spLabel.setText('E:IYILESTIR');
+        this.spLabel.setText(t('eIyilestir'));
         break;
       }
       case 5: {
         const oran = 1 - Phaser.Math.Clamp(p.overdriveEBekleme / OVERDRIVE.E_BEKLEME, 0, 1);
         this.spFill.width = 80 * oran; this.spFill.fillColor = 0xffee00;
-        this.spLabel.setText('E:PATLAT');
+        this.spLabel.setText(t('ePatlat'));
         break;
       }
       case 9: {
         const oran = 1 - Phaser.Math.Clamp(p.roninEBekleme / RONIN.E_BEKLEME, 0, 1);
         this.spFill.width = 80 * oran; this.spFill.fillColor = 0xaa78ff;
-        this.spLabel.setText('E:GIZLEN');
+        this.spLabel.setText(t('eGizlen'));
         break;
       }
       default: { // AEGIS shield gauge
         const oran = p.kalkanAktif ? p.kalkanKapasite / KALKAN_KAPASITE : (1 - Phaser.Math.Clamp(p.kalkanBekleme / KALKAN_BEKLEME, 0, 1));
         this.spFill.width = 80 * oran; this.spFill.fillColor = 0x00fff7;
-        this.spLabel.setText('E:KALKAN');
+        this.spLabel.setText(t('eKalkan'));
       }
     }
   }
@@ -150,7 +144,7 @@ export class Hud {
     if (p.heroId === 8) {
       const oran = p.reaperRuhBolme / REAPER.RUH_BOLME_MAX;
       this.ultiFill.width = 58 * oran; this.ultiFill.fillColor = 0xcd2d28;
-      this.ultiLabel.setText('Q:ISKELET CAGIR');
+      this.ultiLabel.setText(t('qIskeletCagir'));
       return;
     }
     if (p.ultiAktifMi()) {
@@ -159,6 +153,6 @@ export class Hud {
       this.ultiFill.width = 58 * Phaser.Math.Clamp(p.ultiDolu / ULTI_MAX, 0, 1);
       this.ultiFill.fillColor = 0xffee00;
     }
-    this.ultiLabel.setText('Q:ULTI');
+    this.ultiLabel.setText(t('qUltiLabel'));
   }
 }

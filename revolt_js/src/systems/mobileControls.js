@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GENISLIK, YUKSEKLIK } from '../data/constants.js';
 import { GameState } from '../data/state.js';
+import { t } from '../data/translations.js';
 
 // Touch-first control scheme, matching the Python original's twin-stick
 // design (see SPEC_mobile_ui.md §A): a movement joystick, a fire joystick
@@ -122,13 +123,13 @@ export class MobileControls {
       g.lineStyle(2, color, 0.9);
       g.strokeEllipse(btn.x, btn.y, btn.r * 2, btn.r * 2);
     };
-    drawBtn(this.specialBtn, 'OZEL', 0xf5a623);
+    drawBtn(this.specialBtn, t('mobileSag'), 0xf5a623);
     drawBtn(this.eBtn, 'E', 0x78dcff);
     drawBtn(this.qBtn, 'Q', 0xff78dc);
 
     if (!this._labels) {
       this._labels = [
-        this.scene.add.text(this.specialBtn.x, this.specialBtn.y, 'SAG', { fontFamily: 'monospace', fontSize: '11px', color: '#f5a623' }).setOrigin(0.5).setDepth(51).setScrollFactor(0),
+        this.scene.add.text(this.specialBtn.x, this.specialBtn.y, t('mobileSag'), { fontFamily: 'monospace', fontSize: '11px', color: '#f5a623' }).setOrigin(0.5).setDepth(51).setScrollFactor(0),
         this.scene.add.text(this.eBtn.x, this.eBtn.y, 'E', { fontFamily: 'monospace', fontSize: '15px', color: '#78dcff' }).setOrigin(0.5).setDepth(51).setScrollFactor(0),
         this.scene.add.text(this.qBtn.x, this.qBtn.y, 'Q', { fontFamily: 'monospace', fontSize: '15px', color: '#ff78dc' }).setOrigin(0.5).setDepth(51).setScrollFactor(0)
       ];

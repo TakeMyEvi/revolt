@@ -19,7 +19,7 @@ export class MenuScene extends Phaser.Scene {
 
     const items = [
       [t('oyna'), () => this.scene.start('Play', { bolum: 1, heroId: GameState.selectedHero })],
-      [t('hayattaKal'), () => this.scene.start('Survival', { heroId: GameState.selectedHero })],
+      [t('hayattaKal'), () => this.scene.start('HeroSelect', { forSurvival: true })],
       [t('kahramanlar'), () => this.scene.start('HeroSelect')],
       [t('bolumler'), () => this.scene.start('StageSelect')],
       [t('gorevler'), () => this.scene.start('Gorevler')],

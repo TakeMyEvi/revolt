@@ -5,6 +5,9 @@ import { drawThemedBackground } from '../systems/background.js';
 
 // Direct port of the Python original's `hikaye_ekrani(ekran)` — shown once,
 // before the very first Menu, three pages advanced with SPACE/ENTER/click, ESC skips all.
+// Turkish is the source of truth (matches the original's text exactly);
+// EN/ES/FR/DE are translations, since this intro text isn't in the Python
+// CEVIRI dict.
 const SAYFALAR_TR = [
   ['INSANLIK KENDINI YOK ETTI.', '', 'Savaslar, salginlar ve nihayet yapay zekaya',
     'birakilan kontrol... Dunya artik robotlarin.', '', 'Enkazin uzerinde yeni bir duzen kuruldu.'],
@@ -21,8 +24,38 @@ const SAYFALAR_EN = [
   ['ONLY 7 REMAIN.', '', 'Each with its own unique power.',
     'They are the last hope.', '', 'They must fight through the stages, reach OMEGA-9... and destroy it.']
 ];
-const BASLIK = { tr: 'HIKAYE', en: 'STORY' };
-const IPUCU = { tr: 'SPACE/ENTER Devam   ESC Atla', en: 'SPACE/ENTER Continue   ESC Skip' };
+const SAYFALAR_ES = [
+  ['LA HUMANIDAD SE DESTRUYO A SI MISMA.', '', 'Guerras, plagas y finalmente el control',
+    'cedido a una IA... el mundo ahora es de los robots.', '', 'Un nuevo orden se alzo sobre las ruinas.'],
+  ['LLEGO OMEGA-9.', '', 'Al principio parecio un salvador. Luego enfrento',
+    'a los robots entre si, desatando una guerra civil.', '', 'La mayoria de quienes se le opusieron fueron destruidos.'],
+  ['SOLO QUEDAN 7.', '', 'Cada uno tiene un poder unico y diferente.',
+    'Son la ultima esperanza.', '', 'Deben atravesar los niveles y llegar hasta OMEGA-9... y destruirlo.']
+];
+const SAYFALAR_FR = [
+  ["L'HUMANITE S'EST DETRUITE ELLE-MEME.", '', 'Guerres, epidemies et enfin le controle',
+    "confie a une IA... le monde appartient desormais aux robots.", '', "Un nouvel ordre s'est leve sur les ruines."],
+  ['OMEGA-9 EST ARRIVE.', '', "Au debut, il ressemblait a un sauveur. Puis il a monte",
+    'les robots les uns contre les autres, declenchant une guerre civile.', '', "La plupart de ceux qui lui ont resiste ont ete detruits."],
+  ["IL N'EN RESTE QUE 7.", '', 'Chacun possede un pouvoir unique qui lui est propre.',
+    'Ils sont le dernier espoir.', '', "Ils doivent traverser les niveaux et atteindre OMEGA-9... et le detruire."]
+];
+const SAYFALAR_DE = [
+  ['DIE MENSCHHEIT HAT SICH SELBST ZERSTOERT.', '', 'Kriege, Seuchen und schliesslich die Kontrolle',
+    'einer KI ueberlassen... die Welt gehoert jetzt den Robotern.', '', 'Eine neue Ordnung erhob sich ueber den Truemmern.'],
+  ['OMEGA-9 KAM.', '', 'Zuerst wirkte er wie ein Retter. Dann hetzte er',
+    'die Roboter gegeneinander auf und entfachte einen Buergerkrieg.', '', 'Die meisten, die sich ihm widersetzten, wurden vernichtet.'],
+  ['NUR NOCH 7 SIND UEBRIG.', '', 'Jeder von ihnen hat eine eigene, einzigartige Kraft.',
+    'Sie sind die letzte Hoffnung.', '', 'Sie muessen sich durch die Level kaempfen, OMEGA-9 erreichen... und ihn vernichten.']
+];
+const SAYFALAR_TABLES = { tr: SAYFALAR_TR, en: SAYFALAR_EN, es: SAYFALAR_ES, fr: SAYFALAR_FR, de: SAYFALAR_DE };
+
+const BASLIK = { tr: 'HIKAYE', en: 'STORY', es: 'HISTORIA', fr: 'HISTOIRE', de: 'GESCHICHTE' };
+const IPUCU = {
+  tr: 'SPACE/ENTER Devam   ESC Atla', en: 'SPACE/ENTER Continue   ESC Skip',
+  es: 'ESPACIO/ENTER Continuar   ESC Saltar', fr: 'ESPACE/ENTREE Continuer   ECHAP Passer',
+  de: 'LEERTASTE/ENTER Weiter   ESC Ueberspringen'
+};
 
 export class HikayeScene extends Phaser.Scene {
   constructor() { super('Hikaye'); }
@@ -32,9 +65,10 @@ export class HikayeScene extends Phaser.Scene {
     this.add.rectangle(GENISLIK / 2, YUKSEKLIK / 2, GENISLIK - 6, YUKSEKLIK - 6, 0x000000, 0)
       .setStrokeStyle(3, 0x00fff7);
 
-    const sayfalar = GameState.dil === 'en' ? SAYFALAR_EN : SAYFALAR_TR;
-    const baslik = GameState.dil === 'en' ? BASLIK.en : BASLIK.tr;
-    const ipucu = GameState.dil === 'en' ? IPUCU.en : IPUCU.tr;
+    const dil = SAYFALAR_TABLES[GameState.dil] ? GameState.dil : 'tr';
+    const sayfalar = SAYFALAR_TABLES[dil];
+    const baslik = BASLIK[dil];
+    const ipucu = IPUCU[dil];
 
     this.sayfalar = sayfalar;
     this.sayfaIdx = 0;

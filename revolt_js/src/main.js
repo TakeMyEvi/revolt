@@ -25,6 +25,17 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
+  // Movement everywhere is written as a fixed per-frame pixel amount (ported
+  // from the Python original's clock.tick(60) model), not scaled by delta —
+  // so the game visibly speeds up/slows down if the tick rate drifts from a
+  // steady 60/s. requestAnimationFrame syncs to the DISPLAY's refresh rate,
+  // which on phones with adaptive refresh (60-120Hz) varies during play;
+  // forceSetTimeOut pins the loop to a fixed 60/s via setTimeout instead,
+  // decoupling simulation speed from the screen's refresh rate.
+  fps: { target: 60, forceSetTimeOut: true },
+  // Mobile's on-screen stick + fire-stick + E/Q/Special buttons all rely on
+  // separate simultaneous touches; Phaser only tracks 1 pointer by default.
+  input: { activePointers: 5 },
   physics: {
     default: 'arcade',
     arcade: {
@@ -36,3 +47,12 @@ const config = {
 };
 
 window.__game = new Phaser.Game(config);
+
+// Enables "Add to Home Screen" — only takes effect on a direct, top-level
+// visit (registration silently fails/no-ops inside itch.io's iframe embed,
+// which is harmless: the game just runs without install support there).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}

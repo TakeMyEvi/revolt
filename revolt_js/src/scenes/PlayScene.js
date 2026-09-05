@@ -11,13 +11,13 @@ import { Iskelet } from '../entities/Iskelet.js';
 import { GameState, saveState } from '../data/state.js';
 import { leftAttack, rightAction, rightRelease, eAbility, qUlti, handleSharedPerFrameEffects, hitTargets, getAim } from '../systems/heroActions.js';
 import { MobileControls } from '../systems/mobileControls.js';
-import { gameplayStart, gameplayStop, commercialBreak } from '../systems/poki.js';
+import { gameplayStart, gameplayStop, commercialBreak, rewardedBreak, isPokiAvailable } from '../systems/poki.js';
 import { Hud } from '../systems/hud.js';
 import { Parca, HasarYazisi, patlama } from '../entities/Fx.js';
 import { makeButton } from '../systems/ui.js';
 import { playThemeMusic, themeKeyForBolum } from '../systems/music.js';
 import { Crosshair } from '../systems/crosshair.js';
-import { t } from '../data/translations.js';
+import { t, randomOlumMesaji } from '../data/translations.js';
 import { PauseController } from '../systems/pause.js';
 
 export class PlayScene extends Phaser.Scene {
@@ -52,6 +52,7 @@ export class PlayScene extends Phaser.Scene {
     this.worm = null;
     this.wormTimer = Phaser.Math.Between(SOLUCAN.ARALIK_MIN, SOLUCAN.ARALIK_MAX);
     this.wormKilled = false;
+    this.golgeSolucanlar = []; // OMEGA-9's summoned shadow-worm reinforcements
     this.debris = [];
     this.debrisTimer = Phaser.Math.Between(150, 250);
 
@@ -95,6 +96,24 @@ export class PlayScene extends Phaser.Scene {
     this.fx.push(...patlama(this, w.x + w.w / 2, ZEMIN_Y, 0xf5a623, 12));
   }
 
+  // Boss-summoned shadow worms count as a real kill (score + ulti charge)
+  // but must NOT touch kalanDusman/wormKilled — those gate stage-clear and
+  // only the finalboss itself (and the story-mode env. worm) should affect them.
+  onGolgeSolucanKilled(w) {
+    this.skor += Math.round(w.para);
+    this.player.ultiSarjEkle(4);
+    this.fx.push(...patlama(this, w.x + w.w / 2, ZEMIN_Y - w.yukseklik / 2, 0xaa44ff, 10));
+  }
+
+  // Same idea, for OMEGA-9's shadow-reskinned regular-type summons (any
+  // enemy tip, not just the worm) — score/ulti charge without touching
+  // kalanDusman, since these don't count toward the stage's clear tally.
+  onGolgeDusmanKilled(d) {
+    this.skor += Math.round(d.para);
+    this.player.ultiSarjEkle(4);
+    this.fx.push(...patlama(this, d.x + d.w / 2, d.y + d.h / 2, 0xaa44ff, 12));
+  }
+
   // Mirrors the Python original's `Dusman.can` setter, which auto-feeds
   // ANY damage source (bullets, skeleton allies, splash) into the active
   // hero's mastery counter — see KAHRAMAN_YUKSELTMELERI / Player.ustalikUygula.
@@ -105,7 +124,14 @@ export class PlayScene extends Phaser.Scene {
   }
 
   onEnemyKilled(d) {
-    if (d.tip === 'boss' || d.tip === 'finalboss') this.sound.play('boss_olum', { volume: 0.5 });
+    if (d.tip === 'finalboss') {
+      // OMEGA-9's death deserves a bigger moment: the normal death cue plus
+      // the player-death scream pitched way down into a monstrous roar of pain.
+      this.sound.play('boss_olum', { volume: 0.9 });
+      this.sound.play('karakter_olum', { volume: 0.8, rate: 0.45 });
+    } else if (d.tip === 'boss') {
+      this.sound.play('boss_olum', { volume: 0.5 });
+    }
     this.skor += Math.round(d.para);
     this.player.ultiSarjEkle(8);
     if (this.player.heroId === 8) {
@@ -145,6 +171,7 @@ export class PlayScene extends Phaser.Scene {
     this.msgBox = this.add.rectangle(GENISLIK / 2, YUKSEKLIK / 2, 460, 240, 0x000000, 0.85)
       .setStrokeStyle(2, 0x00fff7).setDepth(29).setVisible(false);
     this.msgText = this.add.text(GENISLIK / 2, YUKSEKLIK / 2, '', { fontFamily: 'monospace', fontSize: '28px', color: '#00fff7' }).setOrigin(0.5).setDepth(30);
+    this._endScreenExtras = [];
   }
 
   update() {
@@ -265,6 +292,17 @@ export class PlayScene extends Phaser.Scene {
       }
     }
 
+    // OMEGA-9's summoned shadow worms
+    for (let i = this.golgeSolucanlar.length - 1; i >= 0; i--) {
+      const gs = this.golgeSolucanlar[i];
+      gs.guncelle();
+      if (gs.tehlikeliMi() && p.hasarTimer <= 0 &&
+        Phaser.Geom.Intersects.RectangleToRectangle(gs.rect(), p.rect())) {
+        p.hasarAl(gs.hasar);
+      }
+      if (gs.bittiMi()) { gs.destroy(); this.golgeSolucanlar.splice(i, 1); }
+    }
+
     // falling debris (higher-tier stages only) — ruins get them more often and bigger
     if (this.temaBolum > 10) {
       this.debrisTimer--;
@@ -297,6 +335,7 @@ export class PlayScene extends Phaser.Scene {
       m.guncelle();
       const mr = m.rect();
       if (m.oyuncuMermisi) {
+        if (m.golgeGecikme > 0) { m.golgeGecikme--; continue; }
         for (const d of hitTargets(this)) {
           if (d.dead) continue;
           if (Phaser.Geom.Intersects.RectangleToRectangle(mr, d.rect())) {
@@ -350,6 +389,7 @@ export class PlayScene extends Phaser.Scene {
     }
     for (const e of this.debris) e.draw();
     if (this.worm) this.worm.draw();
+    for (const gs of this.golgeSolucanlar) gs.draw();
     for (const s of this.skeletons) s.draw();
     { const aim = getAim(this); p.draw(aim.x, aim.y); this.crosshair.draw(aim.x, aim.y); }
     this.mobileControls.draw();
@@ -364,12 +404,23 @@ export class PlayScene extends Phaser.Scene {
     if (p.can <= 0 && !this.gameOver) {
       this.gameOver = true;
       this.sound.play('karakter_olum', { volume: 0.6 });
-      this.msgBox.setVisible(true);
+      const btnCount = isPokiAvailable() ? 4 : 2;
+      this.msgBox.setSize(460, 2 * (55 + (btnCount - 1) * 44 + 17) + 8).setVisible(true);
       this.msgText.setText(t('kaybettin'));
-      this._showEndButtons([
-        [t('tekrarOyna'), () => this.scene.restart({ bolum: this.bolum, heroId: this.heroId })],
-        [t('anaMenuyeDon'), () => this.scene.start('Menu')]
-      ]);
+      const taunt = this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + 24, randomOlumMesaji(), {
+        fontFamily: 'monospace', fontSize: '13px', color: '#f5a623'
+      }).setOrigin(0.5).setDepth(30);
+      this._endScreenExtras.push(taunt);
+      const buttons = [];
+      if (isPokiAvailable()) {
+        buttons.push([t('reklamlaCanlan'), () => this._reviveFromAd(), { fontSize: '12px' }]);
+      }
+      buttons.push([t('tekrarOyna'), () => this.scene.restart({ bolum: this.bolum, heroId: this.heroId })]);
+      if (isPokiAvailable() && !this.ayarFinal) {
+        buttons.push([t('reklamlaBolumGec'), () => this._skipBolumFromAds(), { fontSize: '12px' }]);
+      }
+      buttons.push([t('anaMenuyeDon'), () => this.scene.start('Menu')]);
+      this._showEndButtons(buttons, 55);
     } else if (this.kalanDusman <= 0 && this.spawnSira.length === 0 && this.wormKilled && !this.stageBitti) {
       this.stageBitti = true;
       GameState.enYuksekBolum = Math.max(GameState.enYuksekBolum, this.bolum + 1);
@@ -382,7 +433,7 @@ export class PlayScene extends Phaser.Scene {
         this.msgText.setText(t('savasiKazandin'));
         this.msgText.setColor('#f5a623').setFontSize(34);
         this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + 40, t('zaferAltyazi'), {
-          fontFamily: 'monospace', fontSize: '14px', color: '#dddddd'
+          fontFamily: 'monospace', fontSize: '14px', color: '#dddddd', align: 'center'
         }).setOrigin(0.5).setDepth(30);
       } else {
         this.msgText.setText(t('bolumTamamlandi'));
@@ -397,8 +448,38 @@ export class PlayScene extends Phaser.Scene {
   }
 
   _showEndButtons(items, startY = 45) {
-    items.forEach(([label, action], i) => {
-      makeButton(this, GENISLIK / 2, YUKSEKLIK / 2 + startY + i * 44, 220, 34, label, action, '15px');
+    items.forEach(([label, action, opts], i) => {
+      const btn = makeButton(this, GENISLIK / 2, YUKSEKLIK / 2 + startY + i * 44, opts?.width ?? 220, 34, label, action, opts?.fontSize ?? '15px');
+      this._endScreenExtras.push(btn.bg, btn.text);
     });
+  }
+
+  // Tears down whatever the death/stage-clear screen put up (taunt text,
+  // buttons) so `_reviveFromAd` can hand control back to the player without
+  // leaving stale UI behind.
+  _clearEndScreen() {
+    this.msgBox.setVisible(false);
+    this.msgText.setText('');
+    for (const o of this._endScreenExtras) o.destroy();
+    this._endScreenExtras = [];
+  }
+
+  async _reviveFromAd() {
+    const ok = await rewardedBreak();
+    if (!ok) return;
+    this._clearEndScreen();
+    this.gameOver = false;
+    this.player.can = Math.round(this.player.maxCan * 0.6);
+    this.player.hasarTimer = 60; // brief invuln so they aren't hit the instant they revive
+  }
+
+  async _skipBolumFromAds() {
+    const ok1 = await rewardedBreak();
+    if (!ok1) return;
+    const ok2 = await rewardedBreak();
+    if (!ok2) return;
+    GameState.enYuksekBolum = Math.max(GameState.enYuksekBolum, this.bolum + 1);
+    saveState();
+    this.scene.restart({ bolum: this.bolum + 1, heroId: this.heroId });
   }
 }

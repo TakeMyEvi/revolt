@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>REVOLT</title>
+  <!-- "Add to Home Screen" installability — only matters when this page is
+       navigated to directly, not when embedded in an iframe (e.g. itch.io's
+       game page wraps it that way; the raw build URL / a direct host doesn't). -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <meta name="theme-color" content="#05050f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="REVOLT" />
   <!-- Poki ad SDK — required for Poki hosting; on any other host (itch.io,
        local dev) this request just fails silently and src/systems/poki.js's
        window.PokiSDK guards make every call a no-op, so nothing else breaks. -->

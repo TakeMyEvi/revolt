@@ -3,6 +3,7 @@ import { GENISLIK, YUKSEKLIK, KAHRAMANLAR, KAHRAMAN_YUKSELTMELERI, KAHRAMAN_USTA
 import { GameState, saveState } from '../data/state.js';
 import { makeButton } from '../systems/ui.js';
 import { t } from '../data/translations.js';
+import { bioFor } from '../data/heroLore.js';
 
 const EKIP_AFIS_SIRA = [0, 1, 6, 7, 8, 5, 9];
 const EKIP_AFIS_FRACS = [0.09, 0.22, 0.35, 0.49, 0.62, 0.75, 0.88];
@@ -10,13 +11,15 @@ const EKIP_AFIS_ACIK_KUMELERI = [
   [0], [0, 1], [0, 1, 6], [0, 1, 6, 7], [0, 1, 6, 7, 8], [0, 1, 6, 7, 8, 5], [0, 1, 6, 7, 8, 5, 9]
 ];
 
-function unlockedHeroIds() {
-  if (GameState.testModu) return KAHRAMANLAR.map(h => h.id);
+// Survival is a separate practice mode — every hero is playable there
+// regardless of story progress, per direct request.
+function unlockedHeroIds(forSurvival) {
+  if (forSurvival || GameState.testModu) return KAHRAMANLAR.map(h => h.id);
   return KAHRAMANLAR.filter(h => h.acilis_bolum <= GameState.enYuksekBolum).map(h => h.id);
 }
 
-function posterIndex() {
-  const unlocked = new Set(unlockedHeroIds());
+function posterIndex(forSurvival) {
+  const unlocked = new Set(unlockedHeroIds(forSurvival));
   let idx = 0;
   for (let i = 0; i < EKIP_AFIS_ACIK_KUMELERI.length; i++) {
     if (EKIP_AFIS_ACIK_KUMELERI[i].every(id => unlocked.has(id))) idx = i;
@@ -31,12 +34,13 @@ export class HeroSelectScene extends Phaser.Scene {
 
   init(data) {
     this._autoOpenUstalik = !!data?.openUstalik;
+    this._forSurvival = !!data?.forSurvival;
   }
 
   preload() {
     // Only the one poster this visibility state actually needs — the other
     // 6 team-poster JPEGs (~1.4MB combined) never touch the network.
-    const key = `ekip_${posterIndex() + 1}`;
+    const key = `ekip_${posterIndex(this._forSurvival) + 1}`;
     if (!this.textures.exists(key)) this.load.image(key, `gorseller/${key}.jpg`);
   }
 
@@ -44,7 +48,7 @@ export class HeroSelectScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#05050f');
     this.ustalikGroup = null; // scene instances are reused across restarts — don't carry a stale panel ref
 
-    const afisIdx = posterIndex();
+    const afisIdx = posterIndex(this._forSurvival);
     const poster = this.add.image(GENISLIK / 2, YUKSEKLIK / 2, `ekip_${afisIdx + 1}`);
     const scale = Math.max(GENISLIK / poster.width, YUKSEKLIK / poster.height);
     poster.setScale(scale);
@@ -55,10 +59,10 @@ export class HeroSelectScene extends Phaser.Scene {
 
     this.add.rectangle(0, 0, GENISLIK, 70, 0x000000, 0.55).setOrigin(0);
     makeButton(this, 60, 30, 100, 32, t('geri'), () => this.scene.start('Menu'), '13px');
-    this.add.text(GENISLIK / 2, 34, t('kahramanSec'), { fontFamily: 'monospace', fontSize: '20px', color: '#00fff7' }).setOrigin(0.5);
-    makeButton(this, GENISLIK - 80, 30, 130, 32, t('yukselt'), () => this._showUstalikPanel(), '13px');
+    this.add.text(GENISLIK / 2, 34, this._forSurvival ? `${t('hayattaKal')}: ${t('kahramanSec')}` : t('kahramanSec'), { fontFamily: 'monospace', fontSize: '20px', color: '#00fff7' }).setOrigin(0.5);
+    if (!this._forSurvival) makeButton(this, GENISLIK - 80, 30, 130, 32, t('yukselt'), () => this._showUstalikPanel(), '13px');
 
-    const unlocked = new Set(unlockedHeroIds());
+    const unlocked = new Set(unlockedHeroIds(this._forSurvival));
 
     EKIP_AFIS_SIRA.forEach((heroId, i) => {
       const hero = KAHRAMANLAR.find(h => h.id === heroId);
@@ -78,14 +82,25 @@ export class HeroSelectScene extends Phaser.Scene {
       const nameColor = isUnlocked ? Phaser.Display.Color.IntegerToColor(hero.renk).rgba : '#555555';
       const label = this.add.text(cx, boxTop + boxH + 24, nameStr, { fontFamily: 'monospace', fontSize: '12px', color: nameColor }).setOrigin(0.5);
       if (!isUnlocked) {
-        this.add.text(cx, boxTop + boxH + 38, `Bolum ${hero.acilis_bolum}`, { fontFamily: 'monospace', fontSize: '9px', color: '#666666' }).setOrigin(0.5);
+        this.add.text(cx, boxTop + boxH + 38, `${t('bolumHintPrefix')} ${hero.acilis_bolum}`, { fontFamily: 'monospace', fontSize: '9px', color: '#666666' }).setOrigin(0.5);
       }
 
       if (isUnlocked) {
         hit.setInteractive({ useHandCursor: true });
-        hit.on('pointerover', () => { if (heroId !== GameState.selectedHero) bar.setFillStyle(0x00ffc8); });
-        hit.on('pointerout', () => { if (heroId !== GameState.selectedHero) bar.setFillStyle(0x555566); });
+        hit.on('pointerover', (pointer) => {
+          if (heroId !== GameState.selectedHero) bar.setFillStyle(0x00ffc8);
+          this._showBio(heroId, pointer);
+        });
+        hit.on('pointermove', (pointer) => this._positionBio(pointer));
+        hit.on('pointerout', () => {
+          if (heroId !== GameState.selectedHero) bar.setFillStyle(0x555566);
+          this._hideBio();
+        });
         hit.on('pointerdown', () => {
+          if (this._forSurvival) {
+            this.scene.start('Survival', { heroId });
+            return;
+          }
           GameState.selectedHero = heroId;
           saveState();
           this.scene.restart();
@@ -93,8 +108,39 @@ export class HeroSelectScene extends Phaser.Scene {
       }
     });
 
+    // hover biography tooltip — top-right of the cursor, unlocked heroes only
+    this.bioBox = this.add.rectangle(0, 0, 260, 90, 0x0a0a12, 0.95).setStrokeStyle(1, 0x00fff7).setDepth(70).setVisible(false);
+    this.bioText = this.add.text(0, 0, '', {
+      fontFamily: 'monospace', fontSize: '11px', color: '#dddddd', wordWrap: { width: 240 }
+    }).setDepth(71).setVisible(false);
+
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     if (this._autoOpenUstalik) this._showUstalikPanel();
+  }
+
+  _showBio(heroId, pointer) {
+    const bio = bioFor(heroId);
+    if (!bio) return;
+    this.bioText.setText(bio);
+    const w = 260, h = this.bioText.height + 20;
+    this.bioBox.setSize(w, h);
+    this.bioBox.setVisible(true);
+    this.bioText.setVisible(true);
+    this._positionBio(pointer);
+  }
+
+  _positionBio(pointer) {
+    if (!this.bioBox.visible) return;
+    const w = this.bioBox.width, h = this.bioBox.height;
+    const x = Phaser.Math.Clamp(pointer.x + 16, 4, GENISLIK - w - 4);
+    const y = Phaser.Math.Clamp(pointer.y - h - 16, 4, YUKSEKLIK - h - 4);
+    this.bioBox.setPosition(x + w / 2, y + h / 2);
+    this.bioText.setPosition(x + 10, y + 10);
+  }
+
+  _hideBio() {
+    this.bioBox.setVisible(false);
+    this.bioText.setVisible(false);
   }
 
   _showUstalikPanel() {
@@ -124,7 +170,7 @@ export class HeroSelectScene extends Phaser.Scene {
     }).setOrigin(0.5));
 
     // hero tabs — only unlocked heroes are browsable here (locked ones aren't spoiled)
-    const browsable = KAHRAMANLAR.filter(h => unlockedHeroIds().includes(h.id));
+    const browsable = KAHRAMANLAR.filter(h => unlockedHeroIds(this._forSurvival).includes(h.id));
     const tabW = panelW / browsable.length;
     browsable.forEach((h, i) => {
       const tx = px + tabW * (i + 0.5);
@@ -140,7 +186,7 @@ export class HeroSelectScene extends Phaser.Scene {
     });
 
     if (!tiers) {
-      g.add(this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + 20, 'Bu kahraman icin ustalik yukseltmesi yok.', {
+      g.add(this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + 20, t('ustalikYokMetni'), {
         fontFamily: 'monospace', fontSize: '13px', color: '#888888'
       }).setOrigin(0.5));
     } else {
@@ -190,14 +236,13 @@ export class HeroSelectScene extends Phaser.Scene {
       tiers.forEach((tier, i) => {
         const esik = esikler[i] || 0;
         const prevEsik = i === 0 ? 0 : (esikler[i - 1] || 0);
-        renderRow(i, py + 96 + i * 96, tier.ad, tier.aciklama, esik, prevEsik);
+        renderRow(i, py + 96 + i * 96, t(`perk${heroId}_${i}Ad`), t(`perk${heroId}_${i}Desc`), esik, prevEsik);
       });
 
       // Overdrive has a 4th, separate unlock outside the numbered tiers —
       // see OVERDRIVE.SALLANMA_ESIGI / game (1).py's overdrive_sallanma_acik.
       if (heroId === 5) {
-        renderRow(3, py + 96 + tiers.length * 96, 'KANCA SALINIMI',
-          'Kanca sallanarak hareket etmeni saglar (acilana kadar hedefe duz ucar).',
+        renderRow(3, py + 96 + tiers.length * 96, t('perk5_3Ad'), t('perk5_3Desc'),
           OVERDRIVE.SALLANMA_ESIGI, 0);
       }
     }

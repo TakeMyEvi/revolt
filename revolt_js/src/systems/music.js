@@ -6,10 +6,7 @@ const TRACKS = {
   harabe: { key: 'harabe_muzik', file: 'sesler/harabe_muzik.ogg' }
 };
 
-// Temporarily disabled at the user's request (overlapping tracks bug — see
-// the loading-guard fix below for what caused it). Flip this back to true
-// once re-enabled.
-const MUSIC_ENABLED = false;
+const MUSIC_ENABLED = true;
 
 export function themeKeyForBolum(bolum) {
   if (bolum <= 10) return 'metropol';
@@ -33,9 +30,15 @@ export function playThemeMusic(scene, themeName) {
   // start two overlapping copies of the same track.
   if (g._musicLoadingKey === track.key) return;
 
+  // Every request stamps a fresh token. If two DIFFERENT uncached themes are
+  // requested back-to-back, the earlier one's load can still finish after the
+  // later one's — its startPlayback must recognize it's stale and no-op
+  // instead of stomping the track that's actually supposed to be playing now.
+  const requestId = (g._musicRequestId = (g._musicRequestId || 0) + 1);
   const startPlayback = () => {
-    g._musicLoadingKey = null;
-    if (g._currentMusicSound) g._currentMusicSound.stop();
+    if (g._musicLoadingKey === track.key) g._musicLoadingKey = null;
+    if (g._musicRequestId !== requestId) return; // superseded by a newer request
+    if (g._currentMusicSound) { g._currentMusicSound.stop(); g._currentMusicSound.destroy(); }
     const sound = scene.sound.add(track.key, { loop: true, volume: 0.22 * (GameState.muzikSeviyesi ?? 1) });
     sound.play();
     g._currentMusicSound = sound;
@@ -54,6 +57,7 @@ export function playThemeMusic(scene, themeName) {
 
 export function stopMusic(scene) {
   const g = scene.sys.game;
-  if (g._currentMusicSound) g._currentMusicSound.stop();
+  g._musicRequestId = (g._musicRequestId || 0) + 1; // invalidate any in-flight load
+  if (g._currentMusicSound) { g._currentMusicSound.stop(); g._currentMusicSound.destroy(); g._currentMusicSound = null; }
   g._currentMusicTheme = null;
 }

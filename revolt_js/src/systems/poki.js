@@ -7,6 +7,12 @@ function sdk() {
   return typeof window !== 'undefined' ? window.PokiSDK : undefined;
 }
 
+// Lets UI code hide ad-gated buttons (revive, skip-level) outside Poki
+// (dev server, itch.io) instead of showing a button that can never work.
+export function isPokiAvailable() {
+  return !!sdk();
+}
+
 export async function initPoki() {
   const s = sdk();
   if (!s) return false;

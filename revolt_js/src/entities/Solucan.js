@@ -3,9 +3,14 @@ import { ZEMIN_Y, SOLUCAN } from '../data/constants.js';
 
 // Direct port of `class Solucan` (burrowing worm hazard).
 export class Solucan {
-  constructor(scene, centerX) {
+  // opts.golge: true for OMEGA-9's summoned "gölge solucan" reinforcements —
+  // same burrow/lunge behavior, recolored dark/shadow, counts as a real kill
+  // (score + ulti charge via onGolgeSolucanKilled) instead of the story-mode
+  // environmental worm's onWormKilled/stage-clear bookkeeping.
+  constructor(scene, centerX, opts = {}) {
     this.scene = scene;
-    this.tip = 'solucan';
+    this.golge = !!opts.golge;
+    this.tip = this.golge ? 'golgeSolucan' : 'solucan';
     this.centerX = centerX;
     this.w = 30;
     this.yukseklik = 0;
@@ -14,7 +19,7 @@ export class Solucan {
     this.hasar = SOLUCAN.HASAR;
     this._can = SOLUCAN.CAN;
     this.maxCan = SOLUCAN.CAN;
-    this.para = 40;
+    this.para = this.golge ? 90 : 40;
     this.anim = 0;
     this.sinirsiz = true; // never counts toward the "kalanDusman" stage-clear tally
     this.gfx = scene.add.graphics().setDepth(6);
@@ -33,7 +38,10 @@ export class Solucan {
   set can(v) {
     const onceki = this._can;
     if (v < onceki && this.scene.onEnemyDamaged) this.scene.onEnemyDamaged(this, onceki - v);
-    if (onceki > 0 && v <= 0 && this.scene.onWormKilled) this.scene.onWormKilled(this);
+    if (onceki > 0 && v <= 0) {
+      if (this.golge) { if (this.scene.onGolgeSolucanKilled) this.scene.onGolgeSolucanKilled(this); }
+      else if (this.scene.onWormKilled) this.scene.onWormKilled(this);
+    }
     this._can = v;
   }
 
@@ -69,34 +77,38 @@ export class Solucan {
     const cx = this.centerX;
     const segment = 20;
     const adet = Math.max(1, Math.floor(this.yukseklik / segment) + 1);
+    const gRenk1 = this.golge ? 0x1c1024 : 0x373c44;
+    const gRenk2 = this.golge ? 0x33163f : 0x5f646e;
+    const gOutline = this.golge ? 0x000000 : 0x14161a;
+    const gSheen = this.golge ? 0x6a2ea8 : 0x8c919b;
     for (let i = 0; i < adet; i++) {
       const sy = ZEMIN_Y - i * segment;
       const koyu = i % 2 === 1;
       const genislik = this.w - (koyu ? 5 : 0);
-      g.fillStyle(koyu ? 0x373c44 : 0x5f646e, 1);
+      g.fillStyle(koyu ? gRenk1 : gRenk2, 1);
       g.fillRect(cx - genislik / 2, sy - segment, genislik, segment + 4);
-      g.lineStyle(1, 0x14161a, 1);
+      g.lineStyle(1, gOutline, 1);
       g.strokeRect(cx - genislik / 2, sy - segment, genislik, segment + 4);
-      g.lineStyle(1, 0x8c919b, 1);
+      g.lineStyle(1, gSheen, 1);
       g.lineBetween(cx - genislik / 2 + 2, sy - 2, cx + genislik / 2 - 2, sy - 2);
       if (Math.floor(this.anim / 6 + i) % 4 === 0) {
-        g.fillStyle(this.faz === 'tehlikeli' ? 0xff3c3c : 0x3cb4ff, 1);
+        g.fillStyle(this.faz === 'tehlikeli' ? 0xff3c3c : (this.golge ? 0xaa44ff : 0x3cb4ff), 1);
         g.fillCircle(cx + (genislik / 2 - 5) * (i % 2 === 0 ? 1 : -1), sy - segment / 2, 2);
       }
     }
 
     if (this.yukseklik > 10) {
       const basY = ZEMIN_Y - this.yukseklik;
-      const renkGoz = this.faz === 'tehlikeli' ? 0xff1e1e : 0xffa01e;
-      g.fillStyle(0x282a30, 1);
+      const renkGoz = this.faz === 'tehlikeli' ? 0xff1e1e : (this.golge ? 0xaa22ff : 0xffa01e);
+      g.fillStyle(this.golge ? 0x0c0810 : 0x282a30, 1);
       g.fillRect(cx - 13, basY - 14, 26, 18);
-      g.lineStyle(1, 0x0f1014, 1);
+      g.lineStyle(1, gOutline, 1);
       g.strokeRect(cx - 13, basY - 14, 26, 18);
       g.fillStyle(renkGoz, 1);
       g.fillCircle(cx, basY - 6, 5);
       g.lineStyle(1, 0xffffff, 1);
       g.strokeCircle(cx, basY - 6, 5);
-      g.fillStyle(0xb4b9c3, 1);
+      g.fillStyle(this.golge ? 0x4a2e5f : 0xb4b9c3, 1);
       for (let k = 0; k < 3; k++) {
         const dx = -9 + k * 9;
         g.beginPath();
