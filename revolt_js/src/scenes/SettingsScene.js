@@ -4,6 +4,7 @@ import { GameState, saveState } from '../data/state.js';
 import { makeButton } from '../systems/ui.js';
 import { NISANGAH_RENKLERI, NISANGAH_SEKILLERI, drawNisangah } from '../systems/crosshair.js';
 import { t } from '../data/translations.js';
+import { refreshMusicVolume } from '../systems/music.js';
 
 const DILLER = [
   { kod: 'tr', ad: 'TR' }, { kod: 'en', ad: 'EN' }, { kod: 'es', ad: 'ES' },
@@ -115,8 +116,13 @@ export class SettingsScene extends Phaser.Scene {
       bar.width = 40 * v;
       pct.setText(`${Math.round(v * 100)}%`);
     };
-    minus.on('pointerdown', () => { GameState[prop] = Math.max(0, Math.round((GameState[prop] - 0.1) * 10) / 10); saveState(); refresh(); });
-    plus.on('pointerdown', () => { GameState[prop] = Math.min(1, Math.round((GameState[prop] + 0.1) * 10) / 10); saveState(); refresh(); });
+    // Music is a long-running looped sound already playing in the background
+    // (unlike SFX, which just read the new value next time they fire) — its
+    // volume has to be pushed to the live Sound object or the slider looks
+    // like it's doing nothing until you leave and re-enter a stage.
+    const applyLive = () => { if (prop === 'muzikSeviyesi') refreshMusicVolume(this); };
+    minus.on('pointerdown', () => { GameState[prop] = Math.max(0, Math.round((GameState[prop] - 0.1) * 10) / 10); saveState(); refresh(); applyLive(); });
+    plus.on('pointerdown', () => { GameState[prop] = Math.min(1, Math.round((GameState[prop] + 0.1) * 10) / 10); saveState(); refresh(); applyLive(); });
     refresh();
   }
 
