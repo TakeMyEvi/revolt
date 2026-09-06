@@ -1,4 +1,4 @@
-   import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { GENISLIK, YUKSEKLIK, ZEMIN_Y, REAPER, WRAITH, PATLAMA_YARICAP, SOLUCAN, platformlarIcin, efektifTemaBolum } from '../data/constants.js';
 import { bolumAyar } from '../data/constants.js';
 import { drawThemedBackground, themeForBolum } from '../systems/background.js';
@@ -15,7 +15,7 @@ import { gameplayStart, gameplayStop, commercialBreak, rewardedBreak, isPokiAvai
 import { Hud } from '../systems/hud.js';
 import { Parca, HasarYazisi, patlama } from '../entities/Fx.js';
 import { makeButton } from '../systems/ui.js';
-import { playThemeMusic, themeKeyForBolum } from '../systems/music.js';
+import { playThemeMusic, themeKeyForBolum, playSfx } from '../systems/music.js';
 import { Crosshair } from '../systems/crosshair.js';
 import { t, randomOlumMesaji } from '../data/translations.js';
 import { PauseController } from '../systems/pause.js';
@@ -127,10 +127,10 @@ export class PlayScene extends Phaser.Scene {
     if (d.tip === 'finalboss') {
       // OMEGA-9's death deserves a bigger moment: the normal death cue plus
       // the player-death scream pitched way down into a monstrous roar of pain.
-      this.sound.play('boss_olum', { volume: 0.9 });
-      this.sound.play('karakter_olum', { volume: 0.8, rate: 0.45 });
+      playSfx(this, 'boss_olum', { volume: 0.9 });
+      playSfx(this, 'karakter_olum', { volume: 0.8, rate: 0.45 });
     } else if (d.tip === 'boss') {
-      this.sound.play('boss_olum', { volume: 0.5 });
+      playSfx(this, 'boss_olum', { volume: 0.5 });
     }
     this.skor += Math.round(d.para);
     this.player.ultiSarjEkle(8);
@@ -403,11 +403,13 @@ export class PlayScene extends Phaser.Scene {
 
     if (p.can <= 0 && !this.gameOver) {
       this.gameOver = true;
-      this.sound.play('karakter_olum', { volume: 0.6 });
+      playSfx(this, 'karakter_olum', { volume: 0.6 });
       const btnCount = isPokiAvailable() ? 4 : 2;
       this.msgBox.setSize(460, 2 * (55 + (btnCount - 1) * 44 + 17) + 8).setVisible(true);
+      const layout = this._centerEndContent({ subtitleOffset: 24, buttonStartY: 55, buttonCount: btnCount });
+      this.msgText.setPosition(GENISLIK / 2, YUKSEKLIK / 2 + layout.titleOffset);
       this.msgText.setText(t('kaybettin'));
-      const taunt = this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + 24, randomOlumMesaji(), {
+      const taunt = this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + layout.subtitleOffset, randomOlumMesaji(), {
         fontFamily: 'monospace', fontSize: '13px', color: '#f5a623'
       }).setOrigin(0.5).setDepth(30);
       this._endScreenExtras.push(taunt);
@@ -420,31 +422,54 @@ export class PlayScene extends Phaser.Scene {
         buttons.push([t('reklamlaBolumGec'), () => this._skipBolumFromAds(), { fontSize: '12px' }]);
       }
       buttons.push([t('anaMenuyeDon'), () => this.scene.start('Menu')]);
-      this._showEndButtons(buttons, 55);
+      this._showEndButtons(buttons, layout.buttonStartY);
     } else if (this.kalanDusman <= 0 && this.spawnSira.length === 0 && this.wormKilled && !this.stageBitti) {
       this.stageBitti = true;
       GameState.enYuksekBolum = Math.max(GameState.enYuksekBolum, this.bolum + 1);
       saveState();
-      this.sound.play('bolum_tamam', { volume: 0.6 });
+      playSfx(this, 'bolum_tamam', { volume: 0.6 });
       this.msgBox.setVisible(true);
       const buttons = [];
       if (this.ayarFinal) {
         this.msgBox.setSize(560, 270);
+        buttons.push([t('anaMenuyeDon'), () => this.scene.start('Menu')]);
+        const layout = this._centerEndContent({ titleHalf: 24, subtitleOffset: 40, buttonStartY: 95, buttonCount: buttons.length });
+        this.msgText.setPosition(GENISLIK / 2, YUKSEKLIK / 2 + layout.titleOffset);
         this.msgText.setText(t('savasiKazandin'));
         this.msgText.setColor('#f5a623').setFontSize(34);
-        this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + 40, t('zaferAltyazi'), {
+        this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + layout.subtitleOffset, t('zaferAltyazi'), {
           fontFamily: 'monospace', fontSize: '14px', color: '#dddddd', align: 'center'
         }).setOrigin(0.5).setDepth(30);
+        this._showEndButtons(buttons, layout.buttonStartY);
       } else {
-        this.msgText.setText(t('bolumTamamlandi'));
         buttons.push([t('sonrakiBolum'), async () => {
           await commercialBreak();
           this.scene.restart({ bolum: this.bolum + 1, heroId: this.heroId });
         }]);
+        buttons.push([t('anaMenuyeDon'), () => this.scene.start('Menu')]);
+        const layout = this._centerEndContent({ buttonStartY: 45, buttonCount: buttons.length });
+        this.msgText.setPosition(GENISLIK / 2, YUKSEKLIK / 2 + layout.titleOffset);
+        this.msgText.setText(t('bolumTamamlandi'));
+        this._showEndButtons(buttons, layout.buttonStartY);
       }
-      buttons.push([t('anaMenuyeDon'), () => this.scene.start('Menu')]);
-      this._showEndButtons(buttons, this.ayarFinal ? 95 : 45);
     }
+  }
+
+  // Vertically centers a message-box's content (title + optional subtitle +
+  // buttons) around the box's own center, instead of anchoring the title AT
+  // the center and letting everything else hang below it — which used to
+  // leave a big empty gap above the title and cramped buttons near the
+  // bottom edge. Returns the offsets (from YUKSEKLIK/2) to use.
+  _centerEndContent({ titleHalf = 20, subtitleOffset = null, subtitleHalf = 10, buttonStartY, buttonCount, buttonHalf = 17 }) {
+    const contentTop = -titleHalf;
+    const lastButtonOffset = buttonStartY + (buttonCount - 1) * 44;
+    const contentBottom = lastButtonOffset + buttonHalf;
+    const shift = -((contentTop + contentBottom) / 2);
+    return {
+      titleOffset: shift,
+      subtitleOffset: subtitleOffset !== null ? subtitleOffset + shift : null,
+      buttonStartY: buttonStartY + shift
+    };
   }
 
   _showEndButtons(items, startY = 45) {
