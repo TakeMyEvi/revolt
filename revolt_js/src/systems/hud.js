@@ -13,10 +13,10 @@ export class Hud {
 
     s.rectangle(GENISLIK / 2, 21, GENISLIK, 42, 0x000000).setDepth(19).setStrokeStyle(2, 0x00fff7);
 
-    this.hpBg = s.rectangle(10, 11, 120, 14, 0x1e1e1e).setOrigin(0).setDepth(20).setStrokeStyle(1, 0x00fff7);
-    this.hpFill = s.rectangle(10, 11, 118, 14, 0x00ff64).setOrigin(0).setDepth(20);
+    this.hpBg = s.rectangle(10, 11, 160, 16, 0x1e1e1e).setOrigin(0).setDepth(20).setStrokeStyle(1, 0x00fff7);
+    this.hpFill = s.rectangle(10, 11, 158, 16, 0x00ff64).setOrigin(0).setDepth(20);
     this.hpBg.setDepth(21);
-    this.hpText = s.text(70, 18, '', { fontFamily: 'monospace', fontSize: '11px', color: '#ffffff' }).setOrigin(0.5).setDepth(22);
+    this.hpText = s.text(90, 19, '', { fontFamily: 'monospace', fontSize: '12px', color: '#ffffff' }).setOrigin(0.5).setDepth(22);
 
     this.cdBg = s.rectangle(10, 27, 120, 8, 0x1e1e1e).setOrigin(0).setDepth(20);
     this.cdFill = s.rectangle(10, 27, 0, 8, 0x00fff7).setOrigin(0).setDepth(21);
@@ -45,7 +45,7 @@ export class Hud {
   update(bolum, kalanDusman, skor) {
     const p = this.scene.player;
     const hpRatio = Phaser.Math.Clamp(p.can / p.maxCan, 0, 1);
-    this.hpFill.width = 118 * hpRatio;
+    this.hpFill.width = 158 * hpRatio;
     this.hpFill.fillColor = hpRatio > 0.5 ? 0x00ff64 : (hpRatio > 0.25 ? 0xf5a623 : 0xe94560);
     this.hpText.setText(`${Math.max(0, Math.round(p.can))}/${p.maxCan}`);
 
