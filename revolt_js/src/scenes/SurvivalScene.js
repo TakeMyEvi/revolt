@@ -129,10 +129,10 @@ export class SurvivalScene extends Phaser.Scene {
   }
 
   _setupHud() {
-    this.hudHpFill = this.add.rectangle(11, 12, 118, 12, 0x00ff64).setOrigin(0, 0).setDepth(21);
-    this.add.rectangle(10, 11, 120, 14, 0x1e1e1e).setOrigin(0, 0).setDepth(20);
-    this.hudXpFill = this.add.rectangle(11, 30, 118, 6, 0x00ccff).setOrigin(0, 0).setDepth(21);
-    this.add.rectangle(10, 29, 120, 8, 0x1e1e1e).setOrigin(0, 0).setDepth(20);
+    this.hudHpFill = this.add.rectangle(11, 12, 158, 14, 0x00ff64).setOrigin(0, 0).setDepth(21);
+    this.add.rectangle(10, 11, 160, 16, 0x1e1e1e).setOrigin(0, 0).setDepth(20);
+    this.hudXpFill = this.add.rectangle(11, 32, 158, 6, 0x00ccff).setOrigin(0, 0).setDepth(21);
+    this.add.rectangle(10, 31, 160, 8, 0x1e1e1e).setOrigin(0, 0).setDepth(20);
     this.hudText = this.add.text(GENISLIK / 2, 20, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffffff' }).setOrigin(0.5).setDepth(20);
     this.hudTime = this.add.text(GENISLIK - 20, 13, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffffff' }).setOrigin(1, 0).setDepth(20);
     this.msgBox = this.add.rectangle(GENISLIK / 2, YUKSEKLIK / 2, 500, 230, 0x000000, 0.85)
@@ -386,9 +386,9 @@ export class SurvivalScene extends Phaser.Scene {
     for (const t of this.dmgTexts) t.draw();
 
     const hpRatio = Phaser.Math.Clamp(p.can / p.maxCan, 0, 1);
-    this.hudHpFill.width = 118 * hpRatio;
+    this.hudHpFill.width = 158 * hpRatio;
     this.hudHpFill.fillColor = hpRatio > 0.5 ? 0x00ff64 : (hpRatio > 0.25 ? 0xf5a623 : 0xe94560);
-    this.hudXpFill.width = 118 * Phaser.Math.Clamp(this.xpDolu / this.xpGerekli, 0, 1);
+    this.hudXpFill.width = 158 * Phaser.Math.Clamp(this.xpDolu / this.xpGerekli, 0, 1);
     this.hudText.setText(`${t('seviyeLabel')} ${this.seviye}   ${t('oldurulenLabel')}:${this.oldurulen}`);
     const secs = Math.floor(this.gecenKare / 60);
     this.hudTime.setText(`${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`);
