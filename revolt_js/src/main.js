@@ -48,6 +48,18 @@ const config = {
 
 window.__game = new Phaser.Game(config);
 
+// The CSS in index.html rotates #game-container 90deg on portrait phones so
+// the landscape game fills the screen instead of shrinking to a tiny strip.
+// Phaser's Scale Manager doesn't always notice that swap on its own, so give
+// it a nudge on every orientation/resize change. The short delay lets the
+// browser finish applying the new CSS layout box before Phaser re-measures it.
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => window.__game?.scale.refresh(), 100);
+});
+window.addEventListener('resize', () => {
+  window.__game?.scale.refresh();
+});
+
 // Enables "Add to Home Screen" — only takes effect on a direct, top-level
 // visit (registration silently fails/no-ops inside itch.io's iframe embed,
 // which is harmless: the game just runs without install support there).
@@ -56,3 +68,4 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
 }
+
