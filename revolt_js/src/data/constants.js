@@ -20,6 +20,11 @@ export const COLORS = {
 
 export const PATLAMA_YARICAP = 55;
 export const FITIL_SURESI = 18;
+// How long the player is untouchable right after getting hit (in frames,
+// 60/s) before another source can damage them again. Was 12 (0.2s) — felt
+// too short, letting multiple overlapping hits/explosions chip away several
+// ticks of damage in the same instant.
+export const HASAR_DOKUNULMAZLIK_SURESI = 24;
 
 export const SOLUCAN = {
   CAN: 75, HASAR: 35, YUKSEKLIK: 220, TEHLIKE_SURESI: 55,
