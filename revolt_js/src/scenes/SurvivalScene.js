@@ -410,10 +410,16 @@ export class SurvivalScene extends Phaser.Scene {
       let y = YUKSEKLIK / 2 + 80;
       if (isPokiAvailable()) {
         const revive = makeButton(this, GENISLIK / 2, y, 220, 34, t('reklamlaCanlan'), () => this._reviveFromAd(), '12px');
+        // msgBox sits at depth 29 — without this, these default to depth 0
+        // and render underneath it, making the buttons look washed-out.
+        revive.bg.setDepth(30);
+        revive.text.setDepth(31);
         this._endScreenExtras.push(revive.bg, revive.text);
         y += 44;
       }
       const menu = makeButton(this, GENISLIK / 2, y, 220, 34, t('anaMenuyeDon'), () => this.scene.start('Menu'), '15px');
+      menu.bg.setDepth(30);
+      menu.text.setDepth(31);
       this._endScreenExtras.push(menu.bg, menu.text);
     }
   }
@@ -434,3 +440,4 @@ export class SurvivalScene extends Phaser.Scene {
     this.player.hasarTimer = 60;
   }
 }
+
