@@ -28,9 +28,22 @@ export class MenuScene extends Phaser.Scene {
       [t('cikis'), () => {}]
     ];
 
+    // 2 columns x 4 rows instead of one tall single-file column — on mobile
+    // a single-column list of 8 thin buttons packs targets too close
+    // together vertically for a fingertip to hit reliably. A grid of wider,
+    // taller buttons gives each one more tappable area in both directions.
+    const cols = 2;
+    const colW = 380, colGap = 40;
+    const totalW = cols * colW + (cols - 1) * colGap;
+    const startX = GENISLIK / 2 - totalW / 2 + colW / 2;
+    const btnW = 340, btnH = 46, rowH = 64, startY = 215;
+
     items.forEach(([label, action], i) => {
-      const y = 190 + i * 34;
-      makeButton(this, GENISLIK / 2, y, 220, 30, label, action);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = startX + col * (colW + colGap);
+      const y = startY + row * rowH;
+      makeButton(this, x, y, btnW, btnH, label, action, '16px');
     });
 
     this.add.text(GENISLIK - 16, YUKSEKLIK - 16, t('krediler'), {
