@@ -9,7 +9,7 @@ import { GameState, saveState } from '../data/state.js';
 import { leftAttack, rightAction, rightRelease, eAbility, qUlti, handleSharedPerFrameEffects, getAim } from '../systems/heroActions.js';
 import { Parca, HasarYazisi, patlama } from '../entities/Fx.js';
 import { makeButton } from '../systems/ui.js';
-import { playThemeMusic } from '../systems/music.js';
+import { playThemeMusic, playSfx } from '../systems/music.js';
 import { drawThemedBackground, themeForBolum } from '../systems/background.js';
 import { MobileControls } from '../systems/mobileControls.js';
 import { gameplayStart, gameplayStop, rewardedBreak, isPokiAvailable } from '../systems/poki.js';
@@ -395,19 +395,30 @@ export class SurvivalScene extends Phaser.Scene {
 
     if (p.can <= 0) {
       this.gameOver = true;
-      this.sound.play('karakter_olum', { volume: 0.6 });
+      playSfx(this, 'karakter_olum', { volume: 0.6 });
       const bestSecs = Math.max(GameState.enUzunHayattaKalma, secs);
       GameState.enUzunHayattaKalma = bestSecs;
       GameState.toplamOldurulen += this.oldurulen;
       saveState();
       const btnCount = isPokiAvailable() ? 2 : 1;
       this.msgBox.setSize(500, Math.max(230, 2 * (80 + (btnCount - 1) * 44 + 17) + 8)).setVisible(true);
+      // Two-line title (~26px font, 2 lines) needs a bigger half-height than
+      // a single-line one, and the same "everything hangs below center"
+      // problem PlayScene had applies here too — center the content block.
+      const titleHalf = 31;
+      const subtitleOffset = 48;
+      const buttonStartY = 80;
+      const contentTop = -titleHalf;
+      const lastButtonOffset = buttonStartY + (btnCount - 1) * 44;
+      const contentBottom = lastButtonOffset + 17;
+      const shift = -((contentTop + contentBottom) / 2);
+      this.msgText.setPosition(GENISLIK / 2, YUKSEKLIK / 2 + shift);
       this.msgText.setText(`${t('hayattaKaldinLabel')}: ${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}\n${t('seviyeLabel')} ${this.seviye}   ${t('oldurulenLabel')}:${this.oldurulen}`);
-      const taunt = this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + 48, randomOlumMesaji(), {
+      const taunt = this.add.text(GENISLIK / 2, YUKSEKLIK / 2 + subtitleOffset + shift, randomOlumMesaji(), {
         fontFamily: 'monospace', fontSize: '12px', color: '#f5a623'
       }).setOrigin(0.5).setDepth(30);
       this._endScreenExtras.push(taunt);
-      let y = YUKSEKLIK / 2 + 80;
+      let y = YUKSEKLIK / 2 + buttonStartY + shift;
       if (isPokiAvailable()) {
         const revive = makeButton(this, GENISLIK / 2, y, 220, 34, t('reklamlaCanlan'), () => this._reviveFromAd(), '12px');
         // msgBox sits at depth 29 — without this, these default to depth 0
@@ -440,4 +451,3 @@ export class SurvivalScene extends Phaser.Scene {
     this.player.hasarTimer = 60;
   }
 }
-
