@@ -26,9 +26,9 @@ export class Hud {
       this.cdPips.push(s.rectangle(10 + i * 12, 27, 11, 8, 0x1e1e1e).setOrigin(0).setDepth(21));
     }
 
-    this.spBg = s.rectangle(175, 11, 80, 14, 0x1e1e1e).setOrigin(0).setDepth(20).setStrokeStyle(1, 0x00fff7);
+    this.spBg = s.rectangle(175, 11, 158, 14, 0x1e1e1e).setOrigin(0).setDepth(20).setStrokeStyle(1, 0x00fff7);
     this.spFill = s.rectangle(175, 11, 0, 14, 0x00fff7).setOrigin(0).setDepth(21);
-    this.spLabel = s.text(261, 18, '', { fontFamily: 'monospace', fontSize: '10px', color: '#dddddd' }).setOrigin(0, 0.5).setDepth(22);
+    this.spLabel = s.text(339, 18, '', { fontFamily: 'monospace', fontSize: '10px', color: '#dddddd' }).setOrigin(0, 0.5).setDepth(22);
 
     this.ultiBg = s.rectangle(560, 11, 60, 14, 0x1e1e1e).setOrigin(0).setDepth(20).setStrokeStyle(1, 0xffee00);
     this.ultiFill = s.rectangle(560, 11, 0, 14, 0xffee00).setOrigin(0).setDepth(21);
@@ -98,43 +98,43 @@ export class Hud {
     switch (p.heroId) {
       case 8: {
         const oran = 1 - Phaser.Math.Clamp(p.reaperEBekleme / REAPER.E_BEKLEME, 0, 1);
-        this.spFill.width = 80 * oran; this.spFill.fillColor = 0xcd2d28;
+        this.spFill.width = 158 * oran; this.spFill.fillColor = 0xcd2d28;
         this.spLabel.setText(t('eGuclendir'));
         break;
       }
       case 7: {
         const oran = Math.min(1, p.wraithRuh / WRAITH.HAYALET_MALIYET);
-        this.spFill.width = 80 * oran; this.spFill.fillColor = oran >= 1 ? 0x96e6dc : 0x5a5a5a;
+        this.spFill.width = 158 * oran; this.spFill.fillColor = oran >= 1 ? 0x96e6dc : 0x5a5a5a;
         this.spLabel.setText(t('sagHayaletEIyilestir'));
         break;
       }
       case 1: {
         const oran = p.raptorKacisAktif ? 1 : 1 - Phaser.Math.Clamp(p.raptorKacisBekleme / RAPTOR.KACIS_BEKLEME, 0, 1);
-        this.spFill.width = 80 * oran; this.spFill.fillColor = p.raptorKacisAktif ? 0xffffff : 0x00ff64;
+        this.spFill.width = 158 * oran; this.spFill.fillColor = p.raptorKacisAktif ? 0xffffff : 0x00ff64;
         this.spLabel.setText(t('eKacis'));
         break;
       }
       case 6: {
         const oran = p.hexHealAktif ? p.hexHealSuresi / HEX.HEAL_SURESI : (1 - Phaser.Math.Clamp(p.hexHealBekleme / HEX.HEAL_BEKLEME, 0, 1));
-        this.spFill.width = 80 * oran; this.spFill.fillColor = p.hexHealAktif ? 0x00ff64 : 0x5a5a5a;
+        this.spFill.width = 158 * oran; this.spFill.fillColor = p.hexHealAktif ? 0x00ff64 : 0x5a5a5a;
         this.spLabel.setText(t('eIyilestir'));
         break;
       }
       case 5: {
         const oran = 1 - Phaser.Math.Clamp(p.overdriveEBekleme / OVERDRIVE.E_BEKLEME, 0, 1);
-        this.spFill.width = 80 * oran; this.spFill.fillColor = 0xffee00;
+        this.spFill.width = 158 * oran; this.spFill.fillColor = 0xffee00;
         this.spLabel.setText(t('ePatlat'));
         break;
       }
       case 9: {
         const oran = 1 - Phaser.Math.Clamp(p.roninEBekleme / RONIN.E_BEKLEME, 0, 1);
-        this.spFill.width = 80 * oran; this.spFill.fillColor = 0xaa78ff;
+        this.spFill.width = 158 * oran; this.spFill.fillColor = 0xaa78ff;
         this.spLabel.setText(t('eGizlen'));
         break;
       }
       default: { // AEGIS shield gauge
         const oran = p.kalkanAktif ? p.kalkanKapasite / KALKAN_KAPASITE : (1 - Phaser.Math.Clamp(p.kalkanBekleme / KALKAN_BEKLEME, 0, 1));
-        this.spFill.width = 80 * oran; this.spFill.fillColor = 0x00fff7;
+        this.spFill.width = 158 * oran; this.spFill.fillColor = 0x00fff7;
         this.spLabel.setText(t('eKalkan'));
       }
     }
@@ -156,3 +156,4 @@ export class Hud {
     this.ultiLabel.setText(t('qUltiLabel'));
   }
 }
+
