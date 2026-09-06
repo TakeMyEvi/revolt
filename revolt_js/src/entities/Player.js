@@ -1,4 +1,4 @@
-tion vcFalimport Phaser from 'phaser';
+import Phaser from 'phaser';
 import { GENISLIK, ZEMIN_Y, AEGIS, HEX, RAPTOR, WRAITH, REAPER, OVERDRIVE, RONIN,
   KALKAN_KAPASITE, KALKAN_SURESI, KALKAN_BEKLEME,
   ULTI_MAX, ULTI_SURESI, ULTI_CAN_ARTISI, SILAHLAR, ustalikKademesi, GENEL_GOREVLER, HASAR_DOKUNULMAZLIK_SURESI } from '../data/constants.js';
@@ -1423,4 +1423,4 @@ export class Player {
   }
 }
 
-funclback(p) { return p._weaponColor(); }
+function vcFallback(p) { return p._weaponColor(); }
