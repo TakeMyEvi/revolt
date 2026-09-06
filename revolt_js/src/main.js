@@ -11,6 +11,22 @@ import { CreditsScene } from './scenes/CreditsScene.js';
 import { GorevlerScene } from './scenes/GorevlerScene.js';
 import { HikayeScene } from './scenes/HikayeScene.js';
 
+// The game draws at a fixed 900x550 internal resolution and Scale.FIT then
+// stretches that canvas up to fill whatever screen it's on — often well
+// past 1:1. Everything gets softened a bit by that stretch, but Phaser Text
+// objects are hit hardest: unless told otherwise they rasterize their glyphs
+// at resolution 1 and THAT bitmap is what gets stretched, so letters go
+// visibly mushy. Patching the factory here (once) instead of touching every
+// scene's add.text(...) call makes every menu/HUD label render its glyphs at
+// a higher source resolution first, so the later upscale stays crisp.
+const TEXT_RESOLUTION = Math.max(2, window.devicePixelRatio || 1);
+const originalTextFactory = Phaser.GameObjects.GameObjectFactory.prototype.text;
+Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, style) {
+  const withResolution = { ...(style || {}) };
+  if (withResolution.resolution === undefined) withResolution.resolution = TEXT_RESOLUTION;
+  return originalTextFactory.call(this, x, y, text, withResolution);
+};
+
 const GENISLIK = 900;
 const YUKSEKLIK = 550;
 
@@ -68,4 +84,3 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
 }
-
