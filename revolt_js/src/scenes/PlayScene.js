@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+   import Phaser from 'phaser';
 import { GENISLIK, YUKSEKLIK, ZEMIN_Y, REAPER, WRAITH, PATLAMA_YARICAP, SOLUCAN, platformlarIcin, efektifTemaBolum } from '../data/constants.js';
 import { bolumAyar } from '../data/constants.js';
 import { drawThemedBackground, themeForBolum } from '../systems/background.js';
@@ -450,6 +450,11 @@ export class PlayScene extends Phaser.Scene {
   _showEndButtons(items, startY = 45) {
     items.forEach(([label, action, opts], i) => {
       const btn = makeButton(this, GENISLIK / 2, YUKSEKLIK / 2 + startY + i * 44, opts?.width ?? 220, 34, label, action, opts?.fontSize ?? '15px');
+      // msgBox (the semi-transparent backdrop) sits at depth 29 — without an
+      // explicit depth here these default to 0 and get drawn UNDERNEATH it,
+      // making the buttons look washed-out/see-through instead of solid.
+      btn.bg.setDepth(30);
+      btn.text.setDepth(31);
       this._endScreenExtras.push(btn.bg, btn.text);
     });
   }
