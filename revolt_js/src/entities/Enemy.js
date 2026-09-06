@@ -24,6 +24,11 @@ const TYPE_DEFS = {
 
 const COOLDOWN_BASE = { ranged: 70, drone: 65, sniper: 35, tank: 110, boss: 35, finalboss: 20, gorunmez: 55, hayalet: 65, mizrakli: 75, golgeRonin: 100 };
 
+// How close a ranged attacker (gunner/drone/sniper/cloaked/ghost) lets the
+// player get before it stops advancing and just shoots from where it is,
+// instead of walking all the way into melee range like the melee types do.
+const RANGED_DURMA_MESAFESI = 260;
+
 export class Dusman {
   // opts.golge: true for OMEGA-9's summoned shadow reinforcements — any
   // regular type, reskinned dark/glowing-purple, scaled to a mild fixed
@@ -58,6 +63,12 @@ export class Dusman {
     const yon = side !== undefined ? side : (this.x > GENISLIK / 2 ? -1 : 1);
     const baseSpeed = def.spd(efektifBolum) * sm;
     this.hizX = baseSpeed * yon;
+    // The movement code below reads this to re-derive a signed speed toward
+    // the player each frame. It used to fall back to `this.hizX || 1`, which
+    // silently turned any intentionally-stationary type (sniper's spd is a
+    // flat 0) into a speed-1 walker — snipers were supposed to plant and
+    // shoot, not close in. Storing the true magnitude once avoids that trap.
+    this.hizTaban = Math.abs(baseSpeed);
     this.hizY = 0;
     this.yerde = false;
 
@@ -173,7 +184,7 @@ export class Dusman {
 
     switch (this.tip) {
       case 'suicide': {
-        this.hizX = yonDusman * Math.abs(this.hizX || 1);
+        this.hizX = yonDusman * this.hizTaban;
         this.x += this.hizX * yavasCarpan;
         this.hizY += 0.5; this.y += this.hizY;
         if (this.y >= ZEMIN_Y - this.h) { this.y = ZEMIN_Y - this.h; this.hizY = 0; this.yerde = true; }
@@ -205,7 +216,7 @@ export class Dusman {
             this.y = Phaser.Math.Clamp(this.isinlanmaHedefY, 44, ZEMIN_Y - this.h);
           }
         } else {
-          this.hizX = yonDusman * Math.abs(this.hizX || 1);
+          this.hizX = yonDusman * this.hizTaban;
           this.x += this.hizX * yavasCarpan;
           this.hizY += 0.4; this.y += this.hizY;
           if (this.y >= ZEMIN_Y - this.h) { this.y = ZEMIN_Y - this.h; this.hizY = 0; this.yerde = true; }
@@ -230,7 +241,11 @@ export class Dusman {
       }
       case 'drone': case 'sniper': case 'gorunmez': {
         const carpan = (this.tip === 'gorunmez' && this.gizli) ? 2.0 : 1.0;
-        this.hizX = yonDusman * Math.abs(this.hizX || 1);
+        const dx = px - cx;
+        // Stop closing in once within firing range — a hovering shooter,
+        // not a rusher. (Fixes sniper specifically stops here too, since
+        // its hizTaban is 0 either way.)
+        this.hizX = Math.abs(dx) > RANGED_DURMA_MESAFESI ? yonDusman * this.hizTaban : 0;
         this.x += this.hizX * carpan * yavasCarpan;
         this.y += Math.sin(zaman / 400 + this.x * 0.01) * 1.2;
         this.y = Phaser.Math.Clamp(this.y, 44, ZEMIN_Y - this.h);
@@ -250,7 +265,11 @@ export class Dusman {
           const kacisYon = px > cx ? -1 : 1;
           this.hizX = kacisYon * 2.4;
         } else {
-          this.hizX = yonDusman * Math.abs(this.hizX || 1);
+          // Same "hold firing range instead of closing to melee" behavior as
+          // the other ranged types — a ghost that shoots shouldn't need to
+          // touch the player to do it.
+          const dx = px - cx;
+          this.hizX = Math.abs(dx) > RANGED_DURMA_MESAFESI ? yonDusman * this.hizTaban : 0;
         }
         this.x += this.hizX * yavasCarpan;
         this.y += Math.sin(zaman / 400 + this.x * 0.01) * 1.2;
@@ -272,7 +291,7 @@ export class Dusman {
         break;
       }
       case 'tank': {
-        this.hizX = yonDusman * Math.abs(this.hizX || 1);
+        this.hizX = yonDusman * this.hizTaban;
         this.x += this.hizX * yavasCarpan;
         this.hizY += 0.6; this.y += this.hizY;
         if (this.y >= ZEMIN_Y - this.h) { this.y = ZEMIN_Y - this.h; this.hizY = 0; this.yerde = true; }
@@ -285,7 +304,7 @@ export class Dusman {
         break;
       }
       case 'boss': {
-        this.hizX = yonDusman * Math.abs(this.hizX || 1);
+        this.hizX = yonDusman * this.hizTaban;
         this.x += this.hizX * yavasCarpan;
         this.hizY += 0.6; this.y += this.hizY;
         if (this.y >= ZEMIN_Y - this.h) { this.y = ZEMIN_Y - this.h; this.hizY = 0; this.yerde = true; }
@@ -339,8 +358,17 @@ export class Dusman {
         this._lazerlerGuncelle();
         break;
       }
-      default: { // melee, ranged, shield
-        this.hizX = yonDusman * Math.abs(this.hizX || 1);
+      case 'ranged': {
+        const dx = px - cx;
+        this.hizX = Math.abs(dx) > RANGED_DURMA_MESAFESI ? yonDusman * this.hizTaban : 0;
+        this.x += this.hizX * yavasCarpan;
+        this.hizY += 0.4; this.y += this.hizY;
+        if (this.y >= ZEMIN_Y - this.h) { this.y = ZEMIN_Y - this.h; this.hizY = 0; this.yerde = true; }
+        if (this.atisYapabilirMi()) this._fireBasic(px, py, cx, cy, mermiListesi, MermiClass);
+        break;
+      }
+      default: { // melee, shield — these are meant to close to melee range
+        this.hizX = yonDusman * this.hizTaban;
         this.x += this.hizX * yavasCarpan;
         this.hizY += 0.4; this.y += this.hizY;
         if (this.y >= ZEMIN_Y - this.h) { this.y = ZEMIN_Y - this.h; this.hizY = 0; this.yerde = true; }
