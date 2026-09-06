@@ -1,7 +1,7 @@
-import Phaser from 'phaser';
+tion vcFalimport Phaser from 'phaser';
 import { GENISLIK, ZEMIN_Y, AEGIS, HEX, RAPTOR, WRAITH, REAPER, OVERDRIVE, RONIN,
   KALKAN_KAPASITE, KALKAN_SURESI, KALKAN_BEKLEME,
-  ULTI_MAX, ULTI_SURESI, ULTI_CAN_ARTISI, SILAHLAR, ustalikKademesi, GENEL_GOREVLER } from '../data/constants.js';
+  ULTI_MAX, ULTI_SURESI, ULTI_CAN_ARTISI, SILAHLAR, ustalikKademesi, GENEL_GOREVLER, HASAR_DOKUNULMAZLIK_SURESI } from '../data/constants.js';
 import { GameState } from '../data/state.js';
 
 // Direct port of `class Oyuncu` — see SPEC_player_heroes.md for exact source formulas.
@@ -208,16 +208,16 @@ export class Player {
       const emilen = Math.min(miktar, this.aegisPasifKalkan);
       this.aegisPasifKalkan -= emilen;
       miktar -= emilen;
-      if (miktar <= 0) { this.hasarTimer = 12; return 0; }
+      if (miktar <= 0) { this.hasarTimer = HASAR_DOKUNULMAZLIK_SURESI; return 0; }
     }
     if (this.wraithUltiAktif) {
       this.can -= miktar * WRAITH.ULTI_HASAR_CARPAN;
-      this.hasarTimer = 12;
+      this.hasarTimer = HASAR_DOKUNULMAZLIK_SURESI;
       return miktar;
     }
     if (this.roninItisZirh > 0) {
       this.can -= miktar * 0.3;
-      this.hasarTimer = 12;
+      this.hasarTimer = HASAR_DOKUNULMAZLIK_SURESI;
       return miktar;
     }
     if (this.kalkanAktif) {
@@ -226,11 +226,11 @@ export class Player {
       miktar -= emilen;
       if (this.kalkanKapasite <= 0) this.kalkanKapat();
       this.can -= miktar;
-      this.hasarTimer = 12;
+      this.hasarTimer = HASAR_DOKUNULMAZLIK_SURESI;
       return miktar;
     }
     this.can -= miktar;
-    this.hasarTimer = 12;
+    this.hasarTimer = HASAR_DOKUNULMAZLIK_SURESI;
     return miktar;
   }
 
@@ -1423,4 +1423,4 @@ export class Player {
   }
 }
 
-function vcFallback(p) { return p._weaponColor(); }
+funclback(p) { return p._weaponColor(); }
