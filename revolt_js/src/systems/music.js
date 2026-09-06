@@ -55,6 +55,22 @@ export function playThemeMusic(scene, themeName) {
   }
 }
 
+// Called by SettingsScene whenever the music slider changes, so an
+// already-playing track's volume updates immediately instead of only taking
+// effect the next time a *different* theme starts (which could be minutes
+// away, or never, if the player stays in the same stage/menu).
+export function refreshMusicVolume(scene) {
+  const g = scene.sys.game;
+  if (g._currentMusicSound) g._currentMusicSound.setVolume(0.22 * (GameState.muzikSeviyesi ?? 1));
+}
+
+// Every one-shot sound effect (hits, deaths, UI cues) should go through this
+// instead of calling scene.sound.play() directly — otherwise the "sesEfekti"
+// slider in Settings has literally nothing to multiply and does nothing.
+export function playSfx(scene, key, opts = {}) {
+  scene.sound.play(key, { ...opts, volume: (opts.volume ?? 1) * (GameState.sesSeviyesi ?? 1) });
+}
+
 export function stopMusic(scene) {
   const g = scene.sys.game;
   g._musicRequestId = (g._musicRequestId || 0) + 1; // invalidate any in-flight load
