@@ -34,6 +34,23 @@
       width: 100%;
       height: 100%;
     }
+    /* REVOLT is a fixed landscape (900x550) game. On a phone held upright,
+       Phaser.Scale.FIT would otherwise shrink the whole game — buttons and
+       all — down to a tiny strip in the middle of a mostly-black screen.
+       Rather than force the player to physically rotate their phone, rotate
+       the container itself: swapping width/height first means Phaser's
+       Scale Manager (which reads the container's un-rotated layout box)
+       sees a landscape-shaped box and fills it properly. */
+    @media screen and (max-width: 900px) and (orientation: portrait) {
+      #game-container {
+        width: 100vh;
+        height: 100vw;
+        top: 50%;
+        left: 50%;
+        transform-origin: center center;
+        transform: translate(-50%, -50%) rotate(90deg);
+      }
+    }
   </style>
 </head>
 <body>
