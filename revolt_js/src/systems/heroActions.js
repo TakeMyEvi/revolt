@@ -3,6 +3,7 @@ import { AEGIS, RAPTOR, HEX, WRAITH, REAPER, RONIN, OVERDRIVE, GENISLIK, ZEMIN_Y
 import { Mermi } from '../entities/Projectile.js';
 import { Iskelet } from '../entities/Iskelet.js';
 import { patlama } from '../entities/Fx.js';
+import { playSfx } from './music.js';
 
 // Shared hero input->action dispatch, used by both PlayScene and SurvivalScene.
 // `scene` must expose: player, enemies, mermiler, applyDamage(d,amount), input.
@@ -265,7 +266,7 @@ export function handleSharedPerFrameEffects(scene) {
   }
   if (p.heroId === 6 && p._pendingHexUlti) {
     p._pendingHexUlti = false;
-    scene.sound.play('hex_ulti', { volume: 0.5 });
+    playSfx(scene, 'hex_ulti', { volume: 0.5 });
     for (const d of hitTargets(scene)) {
       if (d.dead) continue;
       if (p.hexUltiEkranTemizleAcik) scene.applyDamage(d, d.can + 99999);
